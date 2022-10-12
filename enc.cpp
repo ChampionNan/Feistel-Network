@@ -3,49 +3,43 @@
 #include "mbedtls/ctr_drbg.h"
 #include <iostream>
 #include <set>
+#include <cmath>
 
 mbedtls_aes_context aes;
-unsigned char key[32];
+unsigned char key[16];
+int base;
+int max_num = 2000000;
+int _max_num;
 
-void prf(unsigned char *right, char key, int tweak, unsigned char *ret) {
+int prf(int a, int tweak) {
+  // std::cout << "In prf\n";
   unsigned char input[16] = {0};
   unsigned char encrypt_output[16] = {0};
-  input[0] = right[0];
-  input[1] = right[1];
+  for (int i = 3; i >= 0; --i) {
+    input[3-i] = (a >> (24 - i * 8)) & 0xFF;
+  }
   input[15] = tweak & 0xFF;
   mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_ENCRYPT, input, encrypt_output);
-  ret[0] = encrypt_output[0];
-  ret[1] = encrypt_output[1];
-}
-
-void round(unsigned char* data, char key, int tweak, unsigned char* newData) {
-  unsigned char leftBits[2] = {data[0], data[1]};
-  unsigned char rightBits[2] = {data[2], data[3]};
-  newData[0] = rightBits[0];
-  newData[1] = rightBits[1];
-  unsigned char prfRet[2];
-  prf(rightBits, key, tweak, prfRet);
-  newData[2] = leftBits[0] ^ prfRet[0];
-  newData[3] = leftBits[1] ^ prfRet[1];
+  int res = 0;
+  // int flag = (1 << base+1) - 1;
+  for (int i = 0; i < 4; ++i) {
+    res |= encrypt_output[i] << 8 * i;
+  }
+  return res;
 }
 
 // char key[8] = "=-÷×&";
 int encrypt(int index, unsigned char *key, int rounds) {
-  unsigned char bytes[4];
-  for (int i = 0; i < 4; ++i) {
-    bytes[i] = (index >> (24 - i * 8)) & 0xFF;
-  }
-  int keyIdx = 0;
-  unsigned char newBytes[4];
+  // std::cout << "In Encrypt\n";
+  int l = index / (1 << base);
+  int r = index % (1 << base);
+  int temp;
   while (rounds--) {
-    round(bytes, key[keyIdx], rounds, newBytes);
-    keyIdx = (keyIdx + 1) % 32;
+    temp = r ^ prf(l, rounds);
+    r = l;
+    l = temp;
   }
-  int newIndex = 0;
-  for (int i = 0; i < 4; ++i) {
-    newIndex |= newBytes[i] << (24 - i * 8);
-  }
-  return newIndex;
+  return (l << base) + r;
 }
 
 int main(int argc, const char* argv[]) {
@@ -61,16 +55,24 @@ int main(int argc, const char* argv[]) {
     printf(" failed\n ! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret);
     return -1;
   }
-  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key, 32)) != 0) {
+  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key, 16)) != 0) {
     printf(" failed\n ! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret);
     return -1;
   }
-  mbedtls_aes_setkey_enc(&aes, key, 256);
+  mbedtls_aes_setkey_enc(&aes, key, 128);
+  base = ceil(1.0 * log2(max_num) / 2); //=width/2
+  _max_num = 1 << 2 * base;
+
   std::set<int> hash;
   int i = 0, res;
-  while (hash.size() < 2000000) {
+  std::cout << "Max_num: " << _max_num << std::endl;
+  while (hash.size() < _max_num) {
     res = encrypt(i, key, 3);
-    if (res >= 0 && res < 2000000 && !hash.count(res)) {
+    if (hash.count(res)) {
+      std::cout << "Duplicate keys!\n";
+      // return 0;
+    }
+    if (res >= 0 && res < 2000000) {
       hash.insert(res);
     }
     if (i % 1000000 == 0 && i != 0) {
@@ -79,6 +81,7 @@ int main(int argc, const char* argv[]) {
     }
     i += 1;
   }
+
   mbedtls_aes_free(&aes);
   printf("Encrypt size: %d\n", hash.size());
   printf("Max element: %d\n", *hash.begin());
