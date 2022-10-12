@@ -11,19 +11,19 @@ int base;
 int max_num = 2000000;
 int _max_num;
 
-int prf(int a, int tweak) {
+__int128_t prf(__int128_t a) {
   // std::cout << "In prf\n";
   unsigned char input[16] = {0};
   unsigned char encrypt_output[16] = {0};
-  for (int i = 3; i >= 0; --i) {
-    input[3-i] = (a >> (24 - i * 8)) & 0xFF;
+  for (int i = 0; i < 16; ++i) {
+    input[i] = (a >> (120 - i * 8)) & 0xFF;
   }
-  input[15] = tweak & 0xFF;
+  // input[15] = tweak & 0xFF;
   mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_ENCRYPT, input, encrypt_output);
-  int res = 0;
+  __int128_t res = 0;
   // int flag = (1 << base+1) - 1;
-  for (int i = 0; i < 4; ++i) {
-    res |= encrypt_output[i] << 8 * i;
+  for (int i = 0; i < 16; ++i) {
+    res |= encrypt_output[i] << (120 - i * 8);
   }
   return res;
 }
@@ -33,11 +33,14 @@ int encrypt(int index, unsigned char *key, int rounds) {
   // std::cout << "In Encrypt\n";
   int l = index / (1 << base);
   int r = index % (1 << base);
-  int temp;
-  while (rounds--) {
-    temp = r ^ prf(l, rounds);
-    r = l;
+  __int128_t e;
+  int temp, i = 1;
+  while (i <= rounds) {
+    e = prf((r << 16 * 8 - base) + rounds);
+    temp = r;
+    r = l ^ (e >> 16 * 8 - base);
     l = temp;
+    i += 1;
   }
   return (l << base) + r;
 }
@@ -69,8 +72,8 @@ int main(int argc, const char* argv[]) {
   while (hash.size() < _max_num) {
     res = encrypt(i, key, 3);
     if (hash.count(res)) {
-      std::cout << "Duplicate keys!\n";
-      // return 0;
+      // std::cout << "Duplicate keys!\n";
+      continue;
     }
     if (res >= 0 && res < 2000000) {
       hash.insert(res);
