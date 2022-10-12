@@ -36,7 +36,7 @@ int encrypt(int index, unsigned char *key, int rounds) {
   __uint128_t e;
   int temp, i = 1;
   while (i <= rounds) {
-    e = prf((r << 16 * 8 - base) + rounds);
+    e = prf((r << 16 * 8 - base) + i);
     temp = r;
     r = l ^ (e >> 16 * 8 - base);
     l = temp;
