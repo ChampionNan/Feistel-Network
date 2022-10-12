@@ -70,6 +70,10 @@ int main(int argc, const char* argv[]) {
   int i = 0, res;
   while (hash.size() < 2000000) {
     res = encrypt(i, key, 3);
+    if (hash.count(res)) {
+      std::cout << "Duplicate!\n";
+      return 0;
+    }
     if (res >= 0 && res < 2000000 && !hash.count(res)) {
       hash.insert(res);
     }
