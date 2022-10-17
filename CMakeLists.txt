@@ -1,12 +1,16 @@
-cmake_minimum_required(VERSION 3.6)
+# cmake_minimum_required(VERSION 3.6)
 # 定義工程名稱
 project(Enc)
 
 set(SOURCE_FILES enc.cpp)
+
+set (CMAKE_CXX_COMPILER "/usr/bin/g++")
+add_compile_options(-std=c++11)
+
 # Header file path
-set(INC_DIR /usr/local/include)
+set(INC_DIR /homes/bchenba/mbedtls/include)
 # dynamic link library
-set(LINK_DIR /usr/local/lib)
+set(LINK_DIR /homes/bchenba/mbedtls/library)
 # 定義依賴動態連結庫
 
 include_directories(${INC_DIR})
