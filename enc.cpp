@@ -25,8 +25,8 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 268435456
-#define M 16777216
+#define N 12800000// 1073741824L
+#define M 100000// 16777216
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
@@ -90,7 +90,7 @@ void print(int* array, int size);
 void print(int **arrayAddr, int structureId, int size);
 void test(int **arrayAddr, int structureId, int size);
 void testWithDummy(int **arrayAddr, int structureId, int size);
-int greatestPowerOfTwoLessThan(int n);
+int greatestPowerOfTwoLessThan(double n);
 int smallestPowerOfKLargerThan(int n, int k);
 bool isTargetIterK(int randomKey, int iter, int k, int num);
 void mergeSplitHelper(Bucket_x *inputBuffer, int* numRow1, int* numRow2, int* inputId, int* outputId, int iter, int k, int* bucketAddr, int outputStructureId);
@@ -112,10 +112,11 @@ int FAN_OUT;
 int BUCKET_SIZE;
 int HEAP_NODE_SIZE;
 int MERGE_BATCH_SIZE;
-int WRITE_BUFFER_SIZE;
 
 double IOcost = 0;
 int is_tight = 1;
+int finalFlag = 0;
+int oldK;
 
 struct HeapNode {
   Bucket_x *data;
@@ -421,7 +422,7 @@ int main(int argc, const char* argv[]) {
   srand((unsigned)time(NULL));
   
   // 0: OSORT-Tight, 1: OSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
-  int sortId = 4;
+  int sortId = 2;
   int inputId = 0;
 
   // step1: init test numbers
@@ -449,13 +450,17 @@ int main(int argc, const char* argv[]) {
     double z1 = 6 * (KAPPA + log(2*N));
     double z2 = 6 * (KAPPA + log(2.0*N/z1));
     BUCKET_SIZE = BLOCK_DATA_SIZE * ceil(1.0*z2/BLOCK_DATA_SIZE);
-    FAN_OUT = floor(1.0*M/BUCKET_SIZE);
+    std::cout << "BUCKET_SIZE: " << BUCKET_SIZE << std::endl;
+    double thresh = 1.0*M/BUCKET_SIZE;
+    std::cout << "Threash: " << thresh << std::endl;
+    FAN_OUT = greatestPowerOfTwoLessThan(thresh);
     assert(FAN_OUT >= 2 && "M/Z must greater than 2");
-    int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), FAN_OUT);
+    int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
     int bucketSize = bucketNum * BUCKET_SIZE;
     std::cout << "TOTAL BUCKET SIZE: " << bucketSize << std::endl;
     std::cout << "BUCKET NUMBER: " << bucketNum << std::endl;
     std::cout << "BUCKET SIZE: " << BUCKET_SIZE << std::endl; 
+    std::cout << "FAN_OUT: " << FAN_OUT << std::endl;  
     bucketx1 = (Bucket_x*)malloc(bucketSize * sizeof(Bucket_x));
     bucketx2 = (Bucket_x*)malloc(bucketSize * sizeof(Bucket_x));
     memset(bucketx1, 0xff, bucketSize*sizeof(Bucket_x));
@@ -527,7 +532,7 @@ int main(int argc, const char* argv[]) {
     return ret;
 }
 
-int greatestPowerOfTwoLessThan(int n) {
+int greatestPowerOfTwoLessThan(double n) {
     int k = 1;
     while (k > 0 && k < n) {
         k = k << 1;
@@ -1284,7 +1289,7 @@ void mergeSplit(int inputStructureId, int outputStructureId, int *inputId, int *
 
 void kWayMergeSort(int inputStructureId, int outputStructureId, int* numRow1, int* bucketAddr, int bucketNum) {
   int mergeSortBatchSize = HEAP_NODE_SIZE; // 256
-  int writeBufferSize = (int)WRITE_BUFFER_SIZE; // 8192
+  int writeBufferSize = MERGE_BATCH_SIZE; // 8192
   int numWays = bucketNum;
   // HeapNode inputHeapNodeArr[numWays];
   HeapNode *inputHeapNodeArr = (HeapNode*)malloc(numWays * sizeof(HeapNode));
@@ -1362,18 +1367,18 @@ void bucketSort(int inputStructureId, int size, int dataStart) {
 // int inputTrustMemory[BLOCK_DATA_SIZE];
 int bucketOSort(int structureId, int size) {
   int k = FAN_OUT;
-  int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * size / BUCKET_SIZE), k);
+  int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * size / BUCKET_SIZE), 2);
   int mem1 = k * BUCKET_SIZE;
   HEAP_NODE_SIZE = fmax(floor(1.0 * M / (bucketNum+1)), 1);
   MERGE_BATCH_SIZE = HEAP_NODE_SIZE;
   std::cout << "Mem1's memory: " << mem1 << std::endl;
-  std::cout << "Mem2's memory: " << HEAP_NODE_SIZE << std::endl;
+  std::cout << "Mem2's memory: " << HEAP_NODE_SIZE*(bucketNum+1) << std::endl;
   if (mem1 > M || MERGE_BATCH_SIZE > M) {
     std::cout << "Memory exceed\n";
   }
   // TODO: Change to ceil, not interger divide
-  int ranBinAssignIters = log(bucketNum)/log(k) - 1;
-  std::cout << "Iteration times: " << log(bucketNum)/log(k) << std::endl;
+  int ranBinAssignIters = ceil(1.0*log(bucketNum)/log(k));
+  std::cout << "Iteration times: " << ceil(1.0*log(bucketNum)/log(k)) << std::endl;
   srand((unsigned)time(NULL));
   // std::cout << "Iters:" << ranBinAssignIters << std::endl;
   int *bucketAddr = (int*)malloc(bucketNum * sizeof(int));
@@ -1417,23 +1422,36 @@ int bucketOSort(int structureId, int size) {
   // std::cout << "k:" << k << std::endl;
   int *inputId = (int*)malloc(k * sizeof(int));
   int *outputId = (int*)malloc(k *sizeof(int));
-  int outIdx = 0;
+  int outIdx = 0, expo, tempk, jboundary, jjboundary;
   // TODO: change k to tempk, i != last level, k = FAN_OUT
   // last level k = k % k1, 2N/Z < 2^k, 2^k1 < M/Z
+  int k1 = (int)log2(k);
+  oldK = (int)pow(2, k1);
   for (int i = 0; i < ranBinAssignIters; ++i) {
+    expo = std::min(k1, (int)log2(bucketNum)-i*k1);
+    tempk = (int)pow(2, expo);
+    jboundary = (i != (ranBinAssignIters-1)) ? (bucketNum / (int)pow(tempk, i+1)) : 1;
+    jjboundary = (i != (ranBinAssignIters-1)) ? ((int)pow(tempk, i)) : (bucketNum/tempk);
+    finalFlag = (i != (ranBinAssignIters-1)) ? 0 : 1;
     if (i % 2 == 0) {
-      for (int j = 0; j < bucketNum / (int)pow(k, i+1); ++j) {
+      for (int j = 0; j < jboundary; ++j) {
         // pass (i-1) * k^i
         //printf("j: %d\n", j);
-        for (int jj = 0; jj < (int)pow(k, i); ++jj) {
+        for (int jj = 0; jj < jjboundary; ++jj) {
           //printf("jj: %d\n", jj);
-          for (int m = 0; m < k; ++m) {
+          for (int m = 0; m < tempk; ++m) {
             //printf("j, jj, m: %d, %d, %d\n", j, jj, m);
-            inputId[m] = j * (int)pow(k, i+1)+ jj + m * (int)pow(k, i);
-            outputId[m] = (outIdx * k + m) % bucketNum;
-            //printf("input, output: %d, %d\n", inputId[m], outputId[m]);
+            inputId[m] = j * (int)pow(tempk, i+1)+ jj + m * jjboundary;
+            outputId[m] = (outIdx * tempk + m) % bucketNum;
+            // printf("input, output: %d, %d\n", inputId[m], outputId[m]);
+          }/*
+          for (int m = 0; m < tempk; ++m) {
+            printf("input%d: %d\n", m, inputId[m]);
           }
-          mergeSplit(structureId, structureId + 1, inputId, outputId, k, bucketAddr, numRow1, numRow2, i);
+          for (int m = 0; m < tempk; ++m) {
+            printf("output%d: %d\n", m, outputId[m]);
+          }*/
+          mergeSplit(structureId, structureId + 1, inputId, outputId, tempk, bucketAddr, numRow1, numRow2, i);
           outIdx ++;
         }
       }
@@ -1443,20 +1461,28 @@ int bucketOSort(int structureId, int size) {
         count += numRow2[n];
       }
       printf("after %dth merge split, we have %d tuples\n", i, count);
+      // testRealNum(structureId + 1);
+      // cnt.clear();
       outIdx = 0;
       //print(arrayAddr, structureId + 1, bucketNum * BUCKET_SIZE);
     } else {
-      for (int j = 0; j < bucketNum / (int)pow(k, i+1); ++j) {
+      for (int j = 0; j < jboundary; ++j) {
         //printf("j: %d\n", j);
-        for (int jj = 0; jj < (int)pow(k, i); ++jj) {
+        for (int jj = 0; jj < jjboundary; ++jj) {
           //printf("jj: %d\n", jj);
-          for (int m = 0; m < k; ++m) {
+          for (int m = 0; m < tempk; ++m) {
             //printf("j, jj, m: %d, %d, %d\n", j, jj, m);
-            inputId[m] = j * (int)pow(k, i+1)+ jj + m * (int)pow(k, i);
-            outputId[m] = (outIdx * k + m) % bucketNum;
+            inputId[m] = j * (int)pow(tempk, i+1)+ jj + m * jjboundary;
+            outputId[m] = (outIdx * tempk + m) % bucketNum;
             //printf("input, output: %d, %d\n", inputId[m], outputId[m]);
+          }/*
+          for (int m = 0; m < tempk; ++m) {
+            printf("input%d: %d\n", m, inputId[m]);
           }
-          mergeSplit(structureId + 1, structureId, inputId, outputId, k, bucketAddr, numRow2, numRow1, i);
+          for (int m = 0; m < tempk; ++m) {
+            printf("output%d: %d\n", m, outputId[m]);
+          }*/
+          mergeSplit(structureId + 1, structureId, inputId, outputId, tempk, bucketAddr, numRow2, numRow1, i);
           outIdx ++;
         }
       }
@@ -1466,6 +1492,8 @@ int bucketOSort(int structureId, int size) {
         count += numRow1[n];
       }
       printf("after %dth merge split, we have %d tuples\n", i, count);
+      // testRealNum(structureId);
+      // cnt.clear();
       outIdx = 0;
       //print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
     }
@@ -1477,22 +1505,16 @@ int bucketOSort(int structureId, int size) {
   free(outputId);
   int resultId = 0;
   if (ranBinAssignIters % 2 == 0) {
+    print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
     for (int i = 0; i < bucketNum; ++i) {
       bucketSort(structureId, numRow1[i], bucketAddr[i]);
     }
-    //std::cout << "********************************************\n";
-    //print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
-    
     kWayMergeSort(structureId, structureId + 1, numRow1, bucketAddr, bucketNum);
-    
     resultId = structureId + 1;
   } else {
     for (int i = 0; i < bucketNum; ++i) {
       bucketSort(structureId + 1, numRow2[i], bucketAddr[i]);
     }
-    //std::cout << "********************************************\n";
-    //print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
-    
     kWayMergeSort(structureId + 1, structureId, numRow2, bucketAddr, bucketNum);
     resultId = structureId;
   }
@@ -1508,7 +1530,7 @@ int merge_sort(int inStructureId, int outStructureId, int size) {
   int bucketNum = ceil(1.0 * size / M);
   std::cout << "Bucket Number: " << bucketNum << std::endl;
   HEAP_NODE_SIZE = floor(1.0 * M / (bucketNum + 1));
-  WRITE_BUFFER_SIZE = HEAP_NODE_SIZE;
+  MERGE_BATCH_SIZE = HEAP_NODE_SIZE;
   std::cout << "HEAP_NODE_SIZE: " << HEAP_NODE_SIZE << std::endl;
   int avg = size / bucketNum;
   int remainder = size % bucketNum;
@@ -1605,7 +1627,7 @@ int moveDummy(int *a, int size) {
 
 bool isTargetIterK(int randomKey, int iter, int k, int num) {
   while (iter) {
-    randomKey = randomKey / k;
+    randomKey = randomKey / oldK;
     iter--;
   }
   // return (randomKey & (0x01 << (iter - 1))) == 0 ? false : true;
