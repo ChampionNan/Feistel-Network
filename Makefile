@@ -102,32 +102,92 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named enc
+# Target rules for targets named res
 
 # Build rule for target.
-enc: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 enc
-.PHONY : enc
+res: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 res
+.PHONY : res
 
 # fast build rule for target.
-enc/fast:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/build
-.PHONY : enc/fast
+res/fast:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/build
+.PHONY : res/fast
+
+# target to build an object file
+bucket.o:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/bucket.o
+.PHONY : bucket.o
+
+# target to preprocess a source file
+bucket.i:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/bucket.i
+.PHONY : bucket.i
+
+# target to generate assembly for a file
+bucket.s:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/bucket.s
+.PHONY : bucket.s
+
+# target to build an object file
+common.o:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/common.o
+.PHONY : common.o
+
+# target to preprocess a source file
+common.i:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/common.i
+.PHONY : common.i
+
+# target to generate assembly for a file
+common.s:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/common.s
+.PHONY : common.s
 
 # target to build an object file
 enc.o:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/enc.o
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/enc.o
 .PHONY : enc.o
 
 # target to preprocess a source file
 enc.i:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/enc.i
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/enc.i
 .PHONY : enc.i
 
 # target to generate assembly for a file
 enc.s:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/enc.s
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/enc.s
 .PHONY : enc.s
+
+# target to build an object file
+merge.o:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/merge.o
+.PHONY : merge.o
+
+# target to preprocess a source file
+merge.i:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/merge.i
+.PHONY : merge.i
+
+# target to generate assembly for a file
+merge.s:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/merge.s
+.PHONY : merge.s
+
+# target to build an object file
+oq.o:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/oq.o
+.PHONY : oq.o
+
+# target to preprocess a source file
+oq.i:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/oq.i
+.PHONY : oq.i
+
+# target to generate assembly for a file
+oq.s:
+	$(MAKE) -f CMakeFiles/res.dir/build.make CMakeFiles/res.dir/oq.s
+.PHONY : oq.s
 
 # Help Target
 help:
@@ -136,11 +196,23 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
-	@echo "... enc"
 	@echo "... rebuild_cache"
+	@echo "... res"
+	@echo "... bucket.o"
+	@echo "... bucket.i"
+	@echo "... bucket.s"
+	@echo "... common.o"
+	@echo "... common.i"
+	@echo "... common.s"
 	@echo "... enc.o"
 	@echo "... enc.i"
 	@echo "... enc.s"
+	@echo "... merge.o"
+	@echo "... merge.i"
+	@echo "... merge.s"
+	@echo "... oq.o"
+	@echo "... oq.i"
+	@echo "... oq.s"
 .PHONY : help
 
 

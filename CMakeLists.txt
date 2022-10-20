@@ -2,7 +2,7 @@
 # 定義工程名稱
 project(Enc)
 
-set(SOURCE_FILES enc.cpp)
+set(SOURCE_FILES enc.cpp common.cpp bucket.cpp merge.cpp oq.cpp)
 
 set (CMAKE_CXX_COMPILER "/usr/bin/g++")
 add_compile_options(-std=c++11)
@@ -19,6 +19,6 @@ link_directories(${LINK_DIR})
 
 link_libraries(mbedtls mbedcrypto mbedx509)
 
-add_executable(enc ${SOURCE_FILES})
+add_executable(res ${SOURCE_FILES})
 
-target_link_libraries(enc mbedtls)
+target_link_libraries(res mbedtls)
