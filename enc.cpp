@@ -25,8 +25,8 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 12800000// 1073741824L
-#define M 100000// 16777216
+#define N 268435456// 1073741824L
+#define M 16777216// 16777216
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
@@ -769,7 +769,6 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
   for (int i = 0; i < samples.size(); ++i) {
     std::cout << samples[i] << ' ';
   }
-<<<<<<< HEAD
   mbedtls_aes_setkey_enc(&aes, key, 256);
   std::set<int> hash;
   int i = 0, res;
@@ -781,30 +780,6 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
     }
     if (res >= 0 && res < 2000000 && !hash.count(res)) {
       hash.insert(res);
-=======
-  std::cout << std::endl;
-  int boundary1 = ceil(1.0 * inSize / M_prime);
-  int boundary2 = ceil(1.0 * M_prime / BLOCK_DATA_SIZE);
-  int dataBoundary = boundary2 * BLOCK_DATA_SIZE;
-  int smallSectionSize = M / p0;
-  int bucketSize0 = boundary1 * smallSectionSize;
-  // Memory each section real data num for later duplicate numbers
-  freeAllocate(outStructureId1, outStructureId1, boundary1 * smallSectionSize * p0);
-  int k, Msize1, Msize2, index1, index2, index3, writeBackNum, equalNum, eachNum;
-  int blocks_done = 0;
-  int total_blocks = ceil(1.0 * inSize / BLOCK_DATA_SIZE);
-  int *trustedM3 = (int*)malloc(sizeof(int) * boundary2 * BLOCK_DATA_SIZE);
-  memset(trustedM3, DUMMY, sizeof(int) * boundary2 * BLOCK_DATA_SIZE);
-  int *shuffleB = (int*)malloc(sizeof(int) * BLOCK_DATA_SIZE);
-  std::vector<int> partitionIdx;
-  std::unordered_map<int, int> dupPivots;
-  // Add pivots map: record #pivots & corresponding elements
-  for (int a = 1; a < p0; ++a) {
-    if (dupPivots.count(samples[a]) > 0) {
-      dupPivots[samples[a]] += 1;
-    } else {
-      dupPivots.insert({samples[a], 1});
->>>>>>> master
     }
   }
   // TODO: count each memory block # duplicate keys, find out why misssing some pivot numbers
@@ -1390,33 +1365,35 @@ int bucketOSort(int structureId, int size) {
   int *numRow2 = (int*)malloc(bucketNum * sizeof(int));
   memset(numRow2, 0, bucketNum * sizeof(int));
   
-  Bucket_x *trustedMemory = (Bucket_x*)malloc(BLOCK_DATA_SIZE * sizeof(Bucket_x));
-  int *inputTrustMemory = (int*)malloc(BLOCK_DATA_SIZE * sizeof(int));
-  int total = 0;
-  int offset;
+  Bucket_x *trustedMemory = (Bucket_x*)malloc(BUCKET_SIZE * sizeof(Bucket_x));
+  int *inputTrustMemory = (int*)malloc(BUCKET_SIZE * sizeof(int));
+  int total = 0, readStart = 0;
+  int each;
+  int avg = size / bucketNum;
+  int remainder = size % bucketNum;
 
-  for (int i = 0; i < size; i += BLOCK_DATA_SIZE) {
-    opOneLinearScanBlock(i, inputTrustMemory, std::min(BLOCK_DATA_SIZE, size - i), structureId - 1, 0);
+  for (int i = 0; i < bucketNum; ++i) {
+    each = avg + ((i < remainder) ? 1 : 0);
+    opOneLinearScanBlock(readStart, inputTrustMemory, each, structureId - 1, 0);
+    readStart += each;
     int randomKey;
-    for (int j = 0; j < std::min(BLOCK_DATA_SIZE, size - i); ++j) {
+    for (int j = 0; j < each; ++j) {
       // randomKey = (int)oe_rdrand();
       randomKey = rand();
       trustedMemory[j].x = inputTrustMemory[j];
       trustedMemory[j].key = randomKey;
-      
-      offset = bucketAddr[(i + j) % bucketNum] + numRow1[(i + j) % bucketNum];
-      opOneLinearScanBlock(offset * 2, (int*)(&trustedMemory[j]), (size_t)1, structureId, 1);
-      numRow1[(i + j) % bucketNum] ++;
     }
-    total += std::min(BLOCK_DATA_SIZE, size - i);
+    opOneLinearScanBlock(2 * bucketAddr[i], (int*)trustedMemory, each, structureId, 1, BUCKET_SIZE-each);
+    numRow1[i] += each;
   }
+
   free(trustedMemory);
   free(inputTrustMemory);
-
+  /*
   for (int i = 0; i < bucketNum; ++i) {
     //printf("currently bucket %d has %d records/%d\n", i, numRow1[i], BUCKET_SIZE);
     padWithDummy(structureId, bucketAddr[i], numRow1[i], BUCKET_SIZE);
-  }
+  }*/
   // print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
   // std::cout << "Iters:" << ranBinAssignIters << std::endl;
   // std::cout << "k:" << k << std::endl;
