@@ -32,15 +32,7 @@ void freeAllocate(int structureIdM, int structureIdF, int size);
 
 // SUPPORT
 void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN);
-
 void init(int **arrayAddr, int structurId, int size);
-void print(int* array, int size);
-void print(int **arrayAddr, int structureId, int size);
-void test(int **arrayAddr, int structureId, int size);
-void testWithDummy(int **arrayAddr, int structureId, int size);
-int greatestPowerOfTwoLessThan(double n);
-int smallestPowerOfKLargerThan(int n, int k);
-bool isTargetIterK(int randomKey, int iter, int k, int num);
 
 int *X;
 //structureId=3, write back array
