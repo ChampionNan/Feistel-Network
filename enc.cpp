@@ -19,10 +19,10 @@
 #include <unordered_map>
 #include <bitset>
 
-#include "common.h"
-#include "bucket.h"
-#include "merge.h"
-#include "oq.h"
+#include "include/common.h"
+#include "include/bucket.h"
+#include "include/merge.h"
+#include "include/oq.h"
 
 // OCALL
 void ocall_print_string(const char *str);

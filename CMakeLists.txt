@@ -2,7 +2,7 @@
 # 定義工程名稱
 project(Enc)
 
-set(SOURCE_FILES enc.cpp common.cpp bucket.cpp merge.cpp oq.cpp)
+set(SOURCE_FILES enc.cpp include/common.cpp include/bucket.cpp include/merge.cpp include/oq.cpp)
 
 set (CMAKE_CXX_COMPILER "/usr/bin/g++")
 add_compile_options(-std=c++11)
