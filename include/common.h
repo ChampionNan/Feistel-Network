@@ -23,7 +23,7 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 268435456// 1073741824L
+#define N 1073741824// 1073741824L
 #define M 16777216// 16777216
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
@@ -35,9 +35,9 @@
 #define _ALPHA -1
 #define _BETA -1
 #define _P -1
-#define ALPHA 0.0344927628034036
-#define BETA 0.206333806761951
-#define P 12
+#define ALPHA 0.00879270908698778
+#define BETA 0.0387988772084862
+#define P 69
 
 #define KAPPA 28
 

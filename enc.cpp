@@ -41,11 +41,11 @@ int *Y;
 Bucket_x *bucketx1;
 //structureId=2, bucket 2 in bucket sort
 Bucket_x *bucketx2;
+
 int *arrayAddr[NUM_STRUCTURES];
 int paddedSize;
 int FAN_OUT;
 int BUCKET_SIZE;
-
 double IOcost = 0;
 int is_tight;
 
@@ -102,13 +102,13 @@ int main(int argc, const char* argv[]) {
     init(arrayAddr, inputId, paddedSize);
   } else if (sortId == 2) {
     // inputId = 0;
-    double z1 = 6 * (KAPPA + log(2*N));
+    double z1 = 6 * (KAPPA + log(2.0*N));
     double z2 = 6 * (KAPPA + log(2.0*N/z1));
     BUCKET_SIZE = BLOCK_DATA_SIZE * ceil(1.0*z2/BLOCK_DATA_SIZE);
     std::cout << "BUCKET_SIZE: " << BUCKET_SIZE << std::endl;
     double thresh = 1.0*M/BUCKET_SIZE;
     std::cout << "Threash: " << thresh << std::endl;
-    FAN_OUT = greatestPowerOfTwoLessThan(thresh);
+    FAN_OUT = greatestPowerOfTwoLessThan(thresh)/2;
     assert(FAN_OUT >= 2 && "M/Z must greater than 2");
     int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
     int bucketSize = bucketNum * BUCKET_SIZE;
@@ -172,7 +172,7 @@ int main(int argc, const char* argv[]) {
   // step4: std::cout execution time
   duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "Finished. Duration Time: " << duration.count() << " seconds" << std::endl;
-  std::cout.precision(4);
+  // std::cout.precision(4);
   printf("IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   print(arrayAddr, *resId, *resN);
   // step5: exix part

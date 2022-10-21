@@ -82,7 +82,7 @@ void OcallReadBlock(int index, int* buffer, size_t blockSize, int structureId) {
   }
   // memcpy(buffer, arrayAddr[structureId] + index, blockSize * structureSize[structureId]);
   memcpy(buffer, arrayAddr[structureId] + index, blockSize);
-  IOcost += ceil(1.0*blockSize/structureSize[structureId]/BLOCK_DATA_SIZE);
+  IOcost += 1.0*blockSize/structureSize[structureId]/BLOCK_DATA_SIZE;
 }
 
 void OcallWriteBlock(int index, int* buffer, size_t blockSize, int structureId) {
@@ -92,7 +92,7 @@ void OcallWriteBlock(int index, int* buffer, size_t blockSize, int structureId) 
   }
   // memcpy(arrayAddr[structureId] + index, buffer, blockSize * structureSize[structureId]);
   memcpy(arrayAddr[structureId] + index, buffer, blockSize);
-  IOcost += ceil(1.0*blockSize/structureSize[structureId]/BLOCK_DATA_SIZE);
+  IOcost += 1.0*blockSize/structureSize[structureId]/BLOCK_DATA_SIZE;
 }
 
 // TODO: Set this function as OCALL

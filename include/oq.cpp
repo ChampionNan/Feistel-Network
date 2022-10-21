@@ -402,7 +402,9 @@ int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int o
   }
   std::vector<int> trustedM2;
   int realNum = Sample(inStructureId, inSize, trustedM2, is_tight);
+  printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::pair<int, int> section= OneLevelPartition(inStructureId, inSize, trustedM2, realNum, P, outStructureId1, 0);
+  printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   int sectionSize = section.first;
   int sectionNum = section.second;
   // TODO: IN order to reduce memory, can replace outStructureId2 with inStructureId
@@ -420,6 +422,7 @@ int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int o
       std::cout << "Final error" << std::endl;
     }
   }
+  printf("Till Final IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   free(trustedM);
   return outStructureId2;
 }
@@ -429,9 +432,10 @@ int ObliviousTightSort2(int inStructureId, int inSize, int sampleId, int sortedS
   std::cout << "In ObliviousTightSort2 && In SampleRec\n";
   std::vector<std::vector<int> > pivots;
   SampleRec(inStructureId, sampleId, sortedSampleId, 1, pivots);
+  printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::cout << "In TwoLevelPartition\n";
   std::pair<int, int> section = TwoLevelPartition(inStructureId, pivots, P, outStructureId1, outStructureId2);
-  std::cout << "Till Partition IOcost: " << IOcost/N*BLOCK_DATA_SIZE << std::endl;
+  printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   int sectionSize = section.first;
   int sectionNum = section.second;
   int *trustedM = (int*)malloc(sizeof(int) * M);
@@ -446,7 +450,7 @@ int ObliviousTightSort2(int inStructureId, int inSize, int sampleId, int sortedS
       std::cout << "Final error2\n";
     }
   }
-  std::cout << "Till Final IOcost: " << IOcost/N*BLOCK_DATA_SIZE << std::endl;
+  printf("Till Final IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   return outStructureId1;
 }
 
@@ -463,7 +467,9 @@ std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStr
   }
   std::vector<int> trustedM2;
   int realNum = Sample(inStructureId, inSize, trustedM2, is_tight);
+  printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::pair<int, int> section = OneLevelPartition(inStructureId, inSize, trustedM2, realNum, P, outStructureId1, 0);
+  printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   int sectionSize = section.first;
   int sectionNum = section.second;
   int totalLevelSize = sectionNum * sectionSize;
@@ -476,6 +482,7 @@ std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStr
     quickSort(trustedM, 0, k - 1);
     opOneLinearScanBlock(i * sectionSize, trustedM, sectionSize, outStructureId2, 1, 0);
   }
+  printf("Till Final IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   return {outStructureId2, totalLevelSize};
 }
 
@@ -484,9 +491,10 @@ std::pair<int, int> ObliviousLooseSort2(int inStructureId, int inSize, int sampl
   std::cout << "In ObliviousLooseSort2 && In SasmpleRec\n";
   std::vector<std::vector<int> > pivots;
   SampleRec(inStructureId, sampleId, sortedSampleId, 0, pivots);
-  std::cout << "Till Sample IOcost: " << IOcost/N*BLOCK_DATA_SIZE << std::endl;
+  printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::cout << "In TwoLevelPartition\n";
   std::pair<int, int> section = TwoLevelPartition(inStructureId, pivots, P, outStructureId1, outStructureId2);
+  printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   int sectionSize = section.first;
   int sectionNum = section.second;
   int totalLevelSize = sectionNum * sectionSize;
@@ -499,7 +507,7 @@ std::pair<int, int> ObliviousLooseSort2(int inStructureId, int inSize, int sampl
     quickSort(trustedM, 0, k - 1);
     opOneLinearScanBlock(i * sectionSize, trustedM, sectionSize, outStructureId2, 1, 0);
   }
-  std::cout << "Till Final IOcost: " << IOcost/N*BLOCK_DATA_SIZE << std::endl;
+  printf("Till Final IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   return {outStructureId1, totalLevelSize};
 }
 
