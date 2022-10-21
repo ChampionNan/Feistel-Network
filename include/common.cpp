@@ -74,7 +74,7 @@ void ocall_print_string(const char *str) {
   printf("%s", str);
   fflush(stdout);
 }
-
+/*
 void OcallReadBlock(int index, int* buffer, size_t blockSize, int structureId) {
   if (blockSize == 0) {
     // printf("Unknown data size");
@@ -93,6 +93,25 @@ void OcallWriteBlock(int index, int* buffer, size_t blockSize, int structureId) 
   // memcpy(arrayAddr[structureId] + index, buffer, blockSize * structureSize[structureId]);
   memcpy(arrayAddr[structureId] + index, buffer, blockSize);
   IOcost += 1.0*blockSize/structureSize[structureId]/BLOCK_DATA_SIZE;
+}*/
+void OcallReadBlock(int index, int* buffer, size_t blockSize, int structureId) {
+  if (blockSize == 0) {
+    // printf("Unknown data size");
+    return;
+  }
+  // memcpy(buffer, arrayAddr[structureId] + index, blockSize * structureSize[structureId]);
+  memcpy(buffer, arrayAddr[structureId] + index, blockSize);
+  IOcost += 1;
+}
+
+void OcallWriteBlock(int index, int* buffer, size_t blockSize, int structureId) {
+  if (blockSize == 0) {
+    // printf("Unknown data size");
+    return;
+  }
+  // memcpy(arrayAddr[structureId] + index, buffer, blockSize * structureSize[structureId]);
+  memcpy(arrayAddr[structureId] + index, buffer, blockSize);
+  IOcost += 1;
 }
 
 // TODO: Set this function as OCALL
@@ -114,6 +133,7 @@ void freeAllocate(int structureIdM, int structureIdF, int size) {
 
 // Functions x crossing the enclave boundary, unit: BLOCK_DATA_SIZE
 // TODO: FIX This function ? need checking
+/*
 void opOneLinearScanBlock(int index, int* block, size_t blockSize, int structureId, int write, int dummyNum=0) {
   if (blockSize + dummyNum == 0) {
     return ;
@@ -134,6 +154,40 @@ void opOneLinearScanBlock(int index, int* block, size_t blockSize, int structure
       }
       int startIdx = index + multi * blockSize;
       OcallWriteBlock(startIdx , junk, dummyNum * structureSize[structureId], structureId);
+    }
+  }
+  return;
+}*/
+void opOneLinearScanBlock(int index, int* block, size_t blockSize, int structureId, int write, int dummyNum=0) {
+  if (blockSize + dummyNum == 0) {
+    return ;
+  }
+  int boundary = (int)((blockSize + BLOCK_DATA_SIZE - 1 )/ BLOCK_DATA_SIZE);
+  int Msize, i;
+  int multi = structureSize[structureId] / sizeof(int);
+  if (!write) {
+    // OcallReadBlock(index, block, blockSize * structureSize[structureId], structureId);
+    for (i = 0; i < boundary; ++i) {
+      Msize = std::min(BLOCK_DATA_SIZE, (int)blockSize - i * BLOCK_DATA_SIZE);
+      OcallReadBlock(index + multi * i * BLOCK_DATA_SIZE, &block[i * BLOCK_DATA_SIZE * multi], Msize * structureSize[structureId], structureId);
+    }
+  } else {
+    // OcallWriteBlock(index, block, blockSize * structureSize[structureId], structureId);
+    for (i = 0; i < boundary; ++i) {
+      Msize = std::min(BLOCK_DATA_SIZE, (int)blockSize - i * BLOCK_DATA_SIZE);
+      OcallWriteBlock(index + multi * i * BLOCK_DATA_SIZE, &block[i * BLOCK_DATA_SIZE * multi], Msize * structureSize[structureId], structureId);
+    }
+    if (dummyNum) {
+      int *junk = (int*)malloc(dummyNum * multi * sizeof(int));
+      for (int j = 0; j < dummyNum * multi; ++j) {
+        junk[j] = DUMMY;
+      }
+      int startIdx = index + multi * blockSize;
+      boundary = ceil(1.0 * dummyNum / BLOCK_DATA_SIZE);
+      for (int j = 0; j < boundary; ++j) {
+        Msize = std::min(BLOCK_DATA_SIZE, dummyNum - j * BLOCK_DATA_SIZE);
+        OcallWriteBlock(startIdx + multi * j * BLOCK_DATA_SIZE, &junk[j * BLOCK_DATA_SIZE * multi], Msize * structureSize[structureId], structureId);
+      }
     }
   }
   return;

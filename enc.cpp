@@ -24,12 +24,6 @@
 #include "include/merge.h"
 #include "include/oq.h"
 
-// OCALL
-void ocall_print_string(const char *str);
-void OcallReadBlock(int index, int* buffer, size_t blockSize, int structureId);
-void OcallWriteBlock(int index, int* buffer, size_t blockSize, int structureId);
-void freeAllocate(int structureIdM, int structureIdF, int size);
-
 // SUPPORT
 void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN);
 void init(int **arrayAddr, int structurId, int size);
@@ -77,7 +71,7 @@ int main(int argc, const char* argv[]) {
   srand((unsigned)time(NULL));
   
   // 0: OSORT-Tight, 1: OSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
-  int sortId = 2;
+  int sortId = 1;
   int inputId = 0;
 
   // step1: init test numbers
