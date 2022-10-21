@@ -278,7 +278,7 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
       index2 = partitionIdx[j+1];
       writeBackNum = index2 - index1 + 1;
       if (writeBackNum > smallSectionSize) {
-        printf("Overflow in small section M/p0: %d", writeBackNum);
+        printf("Overflow in small section M/p0: %d > %d\n", writeBackNum, smallSectionSize);
       }
       opOneLinearScanBlock(j * bucketSize0 + i * smallSectionSize, &trustedM3[index1], writeBackNum, outStructureId1, 1, smallSectionSize - writeBackNum);
     }
