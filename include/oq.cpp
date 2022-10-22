@@ -7,8 +7,8 @@ unsigned char key[16];
 int base;
 int max_num;
 int ROUND = 3;
-unsigned int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-std::default_random_engine rng(seed1);
+std::random_device dev;
+std::mt19937 rng(dev()); 
 
 __uint128_t prf(__uint128_t a) {
   unsigned char input[16] = {0};
