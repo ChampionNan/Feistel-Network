@@ -7,6 +7,8 @@ unsigned char key[16];
 int base;
 int max_num;
 int ROUND = 3;
+unsigned int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+std::default_random_engine rng(seed1);
 
 __uint128_t prf(__uint128_t a) {
   unsigned char input[16] = {0};
@@ -63,15 +65,13 @@ void floydSampler(int n, int k, std::vector<int> &x) {
   for (int i = n - k; i < n; ++i) {
     x.push_back(i);
   }
-  unsigned int seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-  std::default_random_engine e(seed1);
   int r, j, temp;
   for (int i = 0; i < k; ++i) {
     std::uniform_int_distribution<int> dist{0, n-k+1+i};
-    r = dist(e); // get random numbers with PRNG
+    r = dist(rng); // get random numbers with PRNG
     if (H.count(r)) {
       std::uniform_int_distribution<int> dist2{0, i};
-      j = dist2(e);
+      j = dist2(rng);
       temp = x[i];
       x[i] = x[j];
       x[j] = temp;

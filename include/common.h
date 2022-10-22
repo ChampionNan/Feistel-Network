@@ -35,8 +35,8 @@
 #define _ALPHA -1
 #define _BETA -1
 #define _P -1
-#define ALPHA 0.00879270908698778
-#define BETA 0.0387988772084862
+#define ALPHA 0.00877622262000717
+#define BETA 0.0389201821822439
 #define P 69
 
 #define KAPPA 28

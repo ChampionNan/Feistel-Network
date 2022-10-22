@@ -59,6 +59,32 @@ void init(int **arrayAddr, int structureId, int size) {
   }
 }
 
+double calRes(double x) {
+  double B = BLOCK_DATA_SIZE;
+  double g = 1;
+  g = x*x*(1-x)/((1+x)*(1+x)*(1+x/2)*(1+2*x));
+  g -= 2*(1+2*x)*N*B/(1.0*M*M*(KAPPA+1+2*log(1.0*N/M)));
+  return g;
+}
+
+double calParams() {
+  double res = 1, left = 0.0, right = 1.0, mid;
+  double y;
+  int times = 0;
+  while (right - left > 0.00001 || times < 100 ) {
+    mid = (left+right)/2;
+    y = calRes(mid);
+    if (y <= 0) {
+      left = mid;
+    } else {
+      right = mid;
+    }
+    times ++;
+  }
+  std::cout << "Gap: " << y << std::endl;
+  return mid;
+}
+
 /* main function */
 int main(int argc, const char* argv[]) {
   int ret = 1;
@@ -74,6 +100,10 @@ int main(int argc, const char* argv[]) {
   int sortId = 1;
   int inputId = 0;
 
+  double beta = calParams();
+  double alpha = (KAPPA+1+log(1.0*N))*4*(1+beta)*(1+2*beta)/beta/beta/M;
+  int p = ceil((1+2*beta)*N/M);
+  printf("Parameters: alpha: %f, beta: %f, p: %d\n", alpha, beta, p);
   // step1: init test numbers
   if (sortId == 3) {
     // inputId = 0;
