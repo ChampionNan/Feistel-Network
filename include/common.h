@@ -23,8 +23,8 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 1073741824// 1073741824L
-#define M 16777216// 16777216
+#define N 3200000// 536870912// 1073741824L
+#define M 100000// 16777216// 16777216
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5

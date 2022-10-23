@@ -7,6 +7,7 @@ int HEAP_NODE_SIZE;
 int MERGE_BATCH_SIZE;
 extern int FAN_OUT;
 extern int BUCKET_SIZE;
+int oldk;
 // BUCKET_SORT
 void initMerge(int size) {
   HEAP_NODE_SIZE = size;
@@ -14,24 +15,29 @@ void initMerge(int size) {
 }
 
 bool isTargetIterK(int randomKey, int iter, int k, int num) {
+  /*
   while (iter) {
     randomKey = randomKey / oldK;
     iter--;
+  }*/
+  if (iter != 0 && iter < 4) {
+    randomKey = randomKey >> (iter * oldk);
   }
-  // return (randomKey & (0x01 << (iter - 1))) == 0 ? false : true;
-  return (randomKey % k) == num;
+  int flag = ((1 << (int)log2(k)) - 1);
+  return (randomKey & flag) == num;
 }
 
 void mergeSplitHelper(Bucket_x *inputBuffer, int* numRow1, int* numRow2, int* inputId, int* outputId, int iter, int k, int* bucketAddr, int outputStructureId) {
   // int batchSize = BUCKET_SIZE; // 8192
   // TODO: FREE these malloc
+  // std::cout << "In mergeSplitHelper\n";
   Bucket_x **buf = (Bucket_x**)malloc(k * sizeof(Bucket_x*));
   for (int i = 0; i < k; ++i) {
     buf[i] = (Bucket_x*)malloc(BUCKET_SIZE * sizeof(Bucket_x));
   }
   
   // int counter0 = 0, counter1 = 0;
-  int randomKey;
+  int randomKey;  
   int *counter = (int*)malloc(k * sizeof(int));
   memset(counter, 0, k * sizeof(int));
   
@@ -51,7 +57,7 @@ void mergeSplitHelper(Bucket_x *inputBuffer, int* numRow1, int* numRow2, int* in
       }
     }
   }
-  
+  // std::cout << "In mergeSplitHelper Final\n";
   for (int j = 0; j < k; ++j) {
     opOneLinearScanBlock(2 * (bucketAddr[outputId[j]] + numRow2[outputId[j]]), (int*)buf[j], (size_t)(counter[j] % BUCKET_SIZE), outputStructureId, 1, 0);
     numRow2[outputId[j]] += counter[j] % BUCKET_SIZE;
@@ -65,16 +71,16 @@ void mergeSplitHelper(Bucket_x *inputBuffer, int* numRow1, int* numRow2, int* in
 }
 
 void mergeSplit(int inputStructureId, int outputStructureId, int *inputId, int *outputId, int k, int* bucketAddr, int* numRow1, int* numRow2, int iter) {
+  // std::cout << "In mergeSplit\n";
   // step1. Read k buckets together
   Bucket_x *inputBuffer = (Bucket_x*)malloc(k * sizeof(Bucket_x) * BUCKET_SIZE);
   for (int i = 0; i < k; ++i) {
     opOneLinearScanBlock(2 * bucketAddr[inputId[i]], (int*)(&inputBuffer[i * BUCKET_SIZE]), BUCKET_SIZE, inputStructureId, 0, 0);
   }
+  // std::cout << "In mergeSplitHelper step2\n";
   // step2. process k buckets
   mergeSplitHelper(inputBuffer, numRow1, numRow2, inputId, outputId, iter, k, bucketAddr, outputStructureId);
   free(inputBuffer);
-  
-  
 }
 
 void kWayMergeSort(int inputStructureId, int outputStructureId, int* numRow1, int* bucketAddr, int bucketNum) {
@@ -217,8 +223,10 @@ int bucketOSort(int structureId, int size) {
   int outIdx = 0, expo, tempk, jboundary, jjboundary;
   // TODO: change k to tempk, i != last level, k = FAN_OUT
   // last level k = k % k1, 2N/Z < 2^k, 2^k1 < M/Z
+  std::cout << "Before RBA\n";
   int k1 = (int)log2(k);
-  oldK = (int)pow(2, k1);
+  // oldK = (int)pow(2, k1);
+  oldk = k1;
   for (int i = 0; i < ranBinAssignIters; ++i) {
     expo = std::min(k1, (int)log2(bucketNum)-i*k1);
     tempk = (int)pow(2, expo);

@@ -97,7 +97,7 @@ int main(int argc, const char* argv[]) {
   srand((unsigned)time(NULL));
   
   // 0: OSORT-Tight, 1: OSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
-  int sortId = 1;
+  int sortId = 2;
   int inputId = 0;
 
   double beta = calParams();
@@ -135,7 +135,7 @@ int main(int argc, const char* argv[]) {
     FAN_OUT = greatestPowerOfTwoLessThan(thresh)/2;
     assert(FAN_OUT >= 2 && "M/Z must greater than 2");
     int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
-    int bucketSize = bucketNum * BUCKET_SIZE;
+    unsigned int bucketSize = bucketNum * BUCKET_SIZE;
     std::cout << "TOTAL BUCKET SIZE: " << bucketSize << std::endl;
     std::cout << "BUCKET NUMBER: " << bucketNum << std::endl;
     std::cout << "BUCKET SIZE: " << BUCKET_SIZE << std::endl; 
@@ -144,6 +144,7 @@ int main(int argc, const char* argv[]) {
     bucketx2 = (Bucket_x*)malloc(bucketSize * sizeof(Bucket_x));
     memset(bucketx1, 0xff, bucketSize*sizeof(Bucket_x));
     memset(bucketx2, 0xff, bucketSize*sizeof(Bucket_x));
+    std::cout << "After bucket malloc\n";
     arrayAddr[1] = (int*)bucketx1;
     arrayAddr[2] = (int*)bucketx2;
     X = (int *) malloc(N * sizeof(int));
