@@ -54,6 +54,7 @@ void init(int **arrayAddr, int structureId, int size) {
   } else if (structureSize[structureId] == 8) {
     Bucket_x *addr = (Bucket_x*)arrayAddr[structureId];
     for (int i = 0; i < size; ++i) {
+      // TODO: size overflow, become negative
       addr[i].x = size - i;
     }
   }
@@ -62,26 +63,30 @@ void init(int **arrayAddr, int structureId, int size) {
 double calRes(double x) {
   double B = BLOCK_DATA_SIZE;
   double g = 1;
-  g = x*x*(1-x)/((1+x)*(1+x)*(1+x/2)*(1+2*x));
-  g -= 2*(1+2*x)*N*B/(1.0*M*M*(KAPPA+1+2*log(1.0*N/M)));
+  double bottom = 1.0*M*M*(KAPPA+1+2*log(1.0*N/M));
+  g = bottom*x*x*(1-x)/((1+x)*(1+x)*(1+x/2)*(1+2*x));
+  g -= 2*(1+2*x)*N*B;
   return g;
 }
 
+// TODO: Need testing
 double calParams() {
-  double res = 1, left = 0.0, right = 1.0, mid;
-  double y;
+  double res = 1, left = 0.0, right = 0.5, mid;
+  double y, resleft, resright;
   int times = 0;
-  while (right - left > 0.00001 || times < 100 ) {
+  while (times < 20 ) {
     mid = (left+right)/2;
     y = calRes(mid);
-    if (y <= 0) {
-      left = mid;
-    } else {
+    resleft = calRes(left);
+    resright = calRes(right);
+    if (resleft * y < 0) {
       right = mid;
+    } else {
+      left = mid;
     }
     times ++;
   }
-  std::cout << "Gap: " << y << std::endl;
+  // std::cout << "Gap: " << y << std::endl;
   return mid;
 }
 
@@ -95,7 +100,8 @@ int main(int argc, const char* argv[]) {
   std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::seconds duration;
   srand((unsigned)time(NULL));
-  
+  // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
+
   // 0: OSORT-Tight, 1: OSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
   int sortId = 2;
   int inputId = 0;
@@ -103,7 +109,7 @@ int main(int argc, const char* argv[]) {
   double beta = calParams();
   double alpha = (KAPPA+1+log(1.0*N))*4*(1+beta)*(1+2*beta)/beta/beta/M;
   int p = ceil((1+2*beta)*N/M);
-  printf("Parameters: alpha: %f, beta: %f, p: %d\n", alpha, beta, p);
+  // printf("Parameters: alpha: %f, beta: %f, p: %d\n", alpha, beta, p);
   // step1: init test numbers
   if (sortId == 3) {
     // inputId = 0;
@@ -117,7 +123,7 @@ int main(int argc, const char* argv[]) {
     init(arrayAddr, inputId, paddedSize);
   } else if (sortId == 4) {
     inputId = 1;
-    arrayAddr[inputId] = X;
+    // arrayAddr[inputId] = X;
     bucketx1 = (Bucket_x*)malloc(N * sizeof(Bucket_x));
     bucketx2 = (Bucket_x*)malloc(N * sizeof(Bucket_x));
     arrayAddr[inputId] = (int*)bucketx1;
@@ -185,10 +191,12 @@ int main(int argc, const char* argv[]) {
     std::cout << "Test OQSort... " << std::endl;
     callSort(sortId, inputId, paddedSize, resId, resN);
     std::cout << "Result ID: " << *resId << std::endl;
-    if (sortId == 0) {
+    if (*resId == -1) {
+      std::cout << "TEST Failed\n";
+    } else if (sortId == 0) {
       test(arrayAddr, *resId, paddedSize);
       *resN = N;
-    } else {
+    } else if (sortId == 1) {
       // Sample Loose has different test & print
       testWithDummy(arrayAddr, *resId, *resN);
     }
@@ -236,7 +244,7 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
   } else if (sortId == 2) {
     *resId = bucketOSort(structureId, paddedSize);
   } else if (sortId == 4) {
-    *resId = merge_sort(structureId, structureId+1, paddedSize);
+    *resId = merge_sort(structureId, structureId+1);
   }
 }
 

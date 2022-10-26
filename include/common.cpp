@@ -1,5 +1,8 @@
 #include "common.h"
 
+std::random_device dev2;
+std::mt19937 rng2(dev2());
+
 Heap::Heap(HeapNode *a, int size, int bsize) {
   heapSize = size;
   harr = a;
@@ -162,6 +165,10 @@ void opOneLinearScanBlock(int index, int* block, size_t blockSize, int structure
   if (blockSize + dummyNum == 0) {
     return ;
   }
+  if (dummyNum < 0) {
+    printf("Dummy padding error!");
+    return ;
+  }
   int boundary = (int)((blockSize + BLOCK_DATA_SIZE - 1 )/ BLOCK_DATA_SIZE);
   int Msize, i;
   int multi = structureSize[structureId] / sizeof(int);
@@ -177,7 +184,7 @@ void opOneLinearScanBlock(int index, int* block, size_t blockSize, int structure
       Msize = std::min(BLOCK_DATA_SIZE, (int)blockSize - i * BLOCK_DATA_SIZE);
       OcallWriteBlock(index + multi * i * BLOCK_DATA_SIZE, &block[i * BLOCK_DATA_SIZE * multi], Msize * structureSize[structureId], structureId);
     }
-    if (dummyNum) {
+    if (dummyNum > 0) {
       int *junk = (int*)malloc(dummyNum * multi * sizeof(int));
       for (int j = 0; j < dummyNum * multi; ++j) {
         junk[j] = DUMMY;
@@ -295,7 +302,8 @@ bool cmpHelper(Bucket_x *a, Bucket_x *b) {
 int partition(int *arr, int low, int high) {
   // TODO: random version
   // srand(unsigned(time(NULL)));
-  int randNum = rand() % (high - low + 1) + low;
+  std::uniform_int_distribution<int> dist{low, high};
+  int randNum = dist(rng2);
   swapRow(arr + high, arr + randNum);
   int *pivot = arr + high;
   int i = low - 1;
@@ -314,7 +322,9 @@ int partition(int *arr, int low, int high) {
 }
 
 int partition(Bucket_x *arr, int low, int high) {
-  int randNum = rand() % (high - low + 1) + low;
+  std::uniform_int_distribution<int> dist{low, high};
+  int randNum = dist(rng2);
+  // int randNum = rand() % (high - low + 1) + low;
   swapRow(arr + high, arr + randNum);
   Bucket_x *pivot = arr + high;
   int i = low - 1;

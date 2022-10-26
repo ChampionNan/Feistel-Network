@@ -23,8 +23,8 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 3200000// 536870912// 1073741824L
-#define M 100000// 16777216// 16777216
+#define N 536870912// 2147483647// 536870912// 1073741824
+#define M 16777216 // 16777216 // 2097152
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
@@ -35,15 +35,17 @@
 #define _ALPHA -1
 #define _BETA -1
 #define _P -1
-#define ALPHA 0.00877622262000717
-#define BETA 0.0389201821822439
-#define P 69
+#define ALPHA 0.0254083472976145
+#define BETA 0.0437794135103789
+#define P 35
 
-#define KAPPA 28
+#define KAPPA 
 
 extern int is_tight;
 extern double IOcost;
 extern int *arrayAddr[NUM_STRUCTURES];
+extern int merSHflag1;
+extern int merSHflag2;
 
 // TODO: set up structure size
 const int structureSize[NUM_STRUCTURES] = {sizeof(int),

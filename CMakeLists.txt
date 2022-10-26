@@ -19,6 +19,6 @@ link_directories(${LINK_DIR})
 
 link_libraries(mbedtls mbedcrypto mbedx509)
 
-add_executable(sort ${SOURCE_FILES})
+add_executable(sort3 ${SOURCE_FILES})
 
-target_link_libraries(sort mbedtls)
+target_link_libraries(sort3 mbedtls)

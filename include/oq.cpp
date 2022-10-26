@@ -7,6 +7,7 @@ unsigned char key[16];
 int base;
 int max_num;
 int ROUND = 3;
+int fail = 0;
 std::random_device dev;
 std::mt19937 rng(dev()); 
 
@@ -129,7 +130,7 @@ void SampleRec(int inStructureId, int sampleId, int sortedSampleId, int is_tight
   int m = 0, Msize;
   freeAllocate(sampleId, sampleId, n_prime);
   for (int i = 0; i < boundary; ++i) {
-    Msize = std::min(M, N - i * M);
+    Msize = std::min(M, (int)(N - i * M));
     // TODO: USing boost library
     m = Hypergeometric(N_prime, Msize, n_prime);
     if (is_tight || (!is_tight && m > 0)) {
@@ -279,6 +280,8 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
       writeBackNum = index2 - index1 + 1;
       if (writeBackNum > smallSectionSize) {
         printf("Overflow in small section M/p0: %d > %d\n", writeBackNum, smallSectionSize);
+        fail = 1;
+        return {-1, -1};
       }
       opOneLinearScanBlock(j * bucketSize0 + i * smallSectionSize, &trustedM3[index1], writeBackNum, outStructureId1, 1, smallSectionSize - writeBackNum);
     }
@@ -317,10 +320,10 @@ std::pair<int, int> TwoLevelPartition(int inStructureId, std::vector<std::vector
       } else {
         k = rand() % (total_blocks - blocks_done);
       }
-      Msize1 = std::min(BLOCK_DATA_SIZE, N - k * BLOCK_DATA_SIZE);
+      Msize1 = std::min(BLOCK_DATA_SIZE, (int)(N - k * BLOCK_DATA_SIZE));
       opOneLinearScanBlock(k * BLOCK_DATA_SIZE, &trustedM3[j*BLOCK_DATA_SIZE], Msize1, inStructureId, 0, 0);
       memset(shuffleB, DUMMY, sizeof(int) * BLOCK_DATA_SIZE);
-      Msize2 = std::min(BLOCK_DATA_SIZE, N - (total_blocks-1-blocks_done) * BLOCK_DATA_SIZE);
+      Msize2 = std::min(BLOCK_DATA_SIZE, (int)(N - (total_blocks-1-blocks_done) * BLOCK_DATA_SIZE));
       opOneLinearScanBlock((total_blocks-1-blocks_done) * BLOCK_DATA_SIZE, shuffleB, Msize2, inStructureId, 0, 0);
       opOneLinearScanBlock(k * BLOCK_DATA_SIZE, shuffleB, BLOCK_DATA_SIZE, inStructureId, 1, 0);
       blocks_done += 1;
@@ -405,6 +408,9 @@ int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int o
   printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::pair<int, int> section= OneLevelPartition(inStructureId, inSize, trustedM2, realNum, P, outStructureId1, 0);
   printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
+  if (fail) {
+    return -1;
+  }
   int sectionSize = section.first;
   int sectionNum = section.second;
   // TODO: IN order to reduce memory, can replace outStructureId2 with inStructureId
@@ -470,6 +476,9 @@ std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStr
   printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::pair<int, int> section = OneLevelPartition(inStructureId, inSize, trustedM2, realNum, P, outStructureId1, 0);
   printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
+  if (fail) {
+    return {-1, -1};
+  }
   int sectionSize = section.first;
   int sectionNum = section.second;
   int totalLevelSize = sectionNum * sectionSize;
