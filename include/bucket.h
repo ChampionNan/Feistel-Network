@@ -2,12 +2,12 @@
 
 #include "common.h"
 
-void initMerge(int size);
-bool isTargetIterK(int randomKey, int iter, int k, int num);
-void mergeSplitHelper(Bucket_x *inputBuffer, int* numRow1, int* numRow2, int* inputId, int* outputId, int iter, int k, int* bucketAddr, int outputStructureId);
-void mergeSplit(int inputStructureId, int outputStructureId, int *inputId, int *outputId, int k, int* bucketAddr, int* numRow1, int* numRow2, int iter);
-void kWayMergeSort(int inputStructureId, int outputStructureId, int* numRow1, int* bucketAddr, int bucketNum);
-void bucketSort(int inputStructureId, int size, int dataStart);
-int bucketOSort(int structureId, int size);
+void initMerge(int64_t size);
+bool isTargetIterK(int64_t randomKey, int64_t iter, int64_t k, int64_t num);
+void mergeSplitHelper(Bucket_x *inputBuffer, int64_t* numRow1, int64_t* numRow2, int64_t* inputId, int64_t* outputId, int64_t iter, int64_t k, int64_t* bucketAddr, int64_t outputStructureId);
+void mergeSplit(int inputStructureId, int outputStructureId, int64_t *inputId, int64_t *outputId, int64_t k, int64_t* bucketAddr, int64_t* numRow1, int64_t* numRow2, int64_t iter);
+void kWayMergeSort(int inputStructureId, int outputStructureId, int64_t* numRow1, int64_t* bucketAddr, int64_t bucketNum);
+void bucketSort(int inputStructureId, int64_t size, int64_t dataStart);
+int bucketOSort(int structureId, int64_t size);
 
 #endif // !BUCKET_H

@@ -7,20 +7,20 @@
 #include <cstdint>
 
 __uint128_t prf(__uint128_t a);
-int encrypt(int index);
-void pseudo_init(int size);
-void floydSampler(int n, int k, std::vector<int> &x);
-int Sample(int inStructureId, int sampleSize, std::vector<int> &trustedM2, int is_tight, int is_rec);
-void SampleRec(int inStructureId, int sampleId, int sortedSampleId, int is_tight, std::vector<std::vector<int> >& pivots);
-void quantileCal(std::vector<int> &samples, int start, int end, int p);
-int partitionMulti(int *arr, int low, int high, int pivot);
-void quickSortMulti(int *arr, int low, int high, std::vector<int> pivots, int left, int right, std::vector<int> &partitionIdx);
-std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector<int> &samples, int sampleSize, int p, int outStructureId1, int is_rec);
-std::pair<int, int> TwoLevelPartition(int inStructureId, std::vector<std::vector<int> >& pivots, int p, int outStructureId1, int outStructureId2);
-int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int outStructureId2);
-int ObliviousTightSort2(int inStructureId, int inSize, int sampleId, int sortedSampleId, int outStructureId, int outStructureId2);
-std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStructureId1, int outStructureId2);
-std::pair<int, int> ObliviousLooseSort2(int inStructureId, int inSize, int sampleId, int sortedSampleId, int outStructureId1, int outStructureId2);
-void ObliviousLooseSortRec(int sampleId, int sampleSize, int sortedSampleId, std::vector<std::vector<int> >& pivots);
+int64_t encrypt(int64_t index);
+void pseudo_init(int64_t size);
+void floydSampler(int64_t n, int64_t k, std::vector<int64_t> &x);
+int64_t Sample(int inStructureId, int64_t sampleSize, std::vector<int64_t> &trustedM2, int is_tight, int is_rec);
+void SampleRec(int inStructureId, int sampleId, int sortedSampleId, int is_tight, std::vector<std::vector<int64_t> >& pivots);
+void quantileCal(std::vector<int64_t> &samples, int64_t start, int64_t end, int64_t p);
+int64_t partitionMulti(int64_t *arr, int64_t low, int64_t high, int64_t pivot);
+void quickSortMulti(int64_t *arr, int64_t low, int64_t high, std::vector<int64_t> pivots, int64_t left, int64_t right, std::vector<int64_t> &partitionIdx);
+std::pair<int64_t, int64_t> OneLevelPartition(int inStructureId, int64_t inSize, std::vector<int64_t> &samples, int64_t sampleSize, int64_t p, int outStructureId1, int is_rec);
+std::pair<int64_t, int64_t> TwoLevelPartition(int inStructureId, std::vector<std::vector<int64_t> >& pivots, int64_t p, int outStructureId1, int outStructureId2);
+int ObliviousTightSort(int inStructureId, int64_t inSize, int outStructureId1, int outStructureId2);
+int ObliviousTightSort2(int inStructureId, int64_t inSize, int sampleId, int sortedSampleId, int outStructureId, int outStructureId2);
+std::pair<int64_t, int64_t> ObliviousLooseSort(int inStructureId, int64_t inSize, int outStructureId1, int outStructureId2);
+std::pair<int64_t, int64_t> ObliviousLooseSort2(int inStructureId, int64_t inSize, int sampleId, int sortedSampleId, int outStructureId1, int outStructureId2);
+void ObliviousLooseSortRec(int sampleId, int64_t sampleSize, int sortedSampleId, std::vector<std::vector<int64_t> >& pivots);
 
 #endif // !OQ_H

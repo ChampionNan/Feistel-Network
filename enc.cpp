@@ -1,62 +1,84 @@
-#include <cmath>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <stdlib.h>
-#include <sys/time.h>
 #include <iostream>
-#include <vector>
+#include <cmath>
+#include <cstdint>  
 #include <cstdlib>
+#include <stdio.h>
+#include <sys/time.h>
 #include <assert.h>
-#include <bitset>
 #include <random>
 #include <chrono>
 #include <utility>
 #include <algorithm>
 #include <iomanip>
 // TODO: new
+#include <vector>
+#include <cstring>
 #include <unordered_set>
 #include <unordered_map>
-#include <bitset>
 
 #include "include/common.h"
 #include "include/bucket.h"
 #include "include/merge.h"
 #include "include/oq.h"
 
-// SUPPORT
-void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN);
-void init(int **arrayAddr, int structurId, int size);
-
-int *X;
+// Globals
+int64_t *X;
 //structureId=3, write back array
-int *Y;
+int64_t *Y;
 //structureId=1, bucket1 in bucket sort; input
 Bucket_x *bucketx1;
 //structureId=2, bucket 2 in bucket sort
 Bucket_x *bucketx2;
 
-int *arrayAddr[NUM_STRUCTURES];
-int paddedSize;
-int FAN_OUT;
-int BUCKET_SIZE;
+int64_t *arrayAddr[NUM_STRUCTURES];
+int64_t paddedSize;
+int64_t FAN_OUT;
+int64_t BUCKET_SIZE;
 double IOcost = 0;
 int is_tight;
 
 /** procedure test() : verify sort results **/
-void init(int **arrayAddr, int structureId, int size) {
-  int i;
-  if (structureSize[structureId] == 4) {
-    int *addr = (int*)arrayAddr[structureId];
+void init(int64_t **arrayAddr, int structureId, int64_t size) {
+  int64_t i;
+  if (structureSize[structureId] == 8) {
+    int64_t *addr = (int64_t*)arrayAddr[structureId];
     for (i = 0; i < size; i++) {
       addr[i] = (size - i);
     }
-  } else if (structureSize[structureId] == 8) {
+  } else if (structureSize[structureId] == 16) {
     Bucket_x *addr = (Bucket_x*)arrayAddr[structureId];
-    for (int i = 0; i < size; ++i) {
+    for (i = 0; i < size; ++i) {
       // TODO: size overflow, become negative
       addr[i].x = size - i;
     }
+  }
+}
+
+// trusted function
+void callSort(int sortId, int structureId, int64_t paddedSize, int *resId, int64_t *resN) {
+  // TODO: Utilize Memory alloction -- structureId
+  if (sortId == 0) {
+    is_tight = 1;
+    if (paddedSize / M <= 128) {
+      *resId = ObliviousTightSort(structureId, paddedSize, structureId + 1, structureId);
+    } else {
+      *resId = ObliviousTightSort2(structureId, paddedSize, structureId+1, structureId+2, structureId+1, structureId);
+    }
+  } else if (sortId == 1) {
+    if (paddedSize / M <= 128) {
+      is_tight = 0;
+      std::pair<int, int64_t> ans = ObliviousLooseSort(structureId, paddedSize, structureId + 1, structureId);
+      *resId = ans.first;
+      *resN = ans.second;
+    } else {
+      std::pair<int, int64_t> ans = ObliviousLooseSort2(structureId, paddedSize, structureId + 1, structureId + 2, structureId + 1, structureId);
+      *resId = ans.first;
+      *resN = ans.second;
+    }
+  } else if (sortId == 2) {
+    *resId = bucketOSort(structureId, paddedSize);
+  } else if (sortId == 4) {
+    *resId = merge_sort(structureId, structureId+1);
   }
 }
 
@@ -94,7 +116,7 @@ double calParams() {
 int main(int argc, const char* argv[]) {
   int ret = 1;
   int *resId = (int*)malloc(sizeof(int));
-  int *resN = (int*)malloc(sizeof(int));
+  int64_t *resN = (int64_t*)malloc(sizeof(int64_t));
   // oe_result_t result;
   // oe_enclave_t* enclave = NULL;
   std::chrono::high_resolution_clock::time_point start, end;
@@ -102,8 +124,8 @@ int main(int argc, const char* argv[]) {
   srand((unsigned)time(NULL));
   // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
 
-  // 0: OSORT-Tight, 1: OSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
-  int sortId = 2;
+  // 0: OQSORT-Tight, 1: OQSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
+  int sortId = 1;
   int inputId = 0;
 
   double beta = calParams();
@@ -113,11 +135,11 @@ int main(int argc, const char* argv[]) {
   // step1: init test numbers
   if (sortId == 3) {
     // inputId = 0;
-    int addi = 0;
+    int64_t addi = 0;
     if (N % BLOCK_DATA_SIZE != 0) {
       addi = ((N / BLOCK_DATA_SIZE) + 1) * BLOCK_DATA_SIZE - N;
     }
-    X = (int*)malloc((N + addi) * sizeof(int));
+    X = (int64_t*)malloc((N + addi) * sizeof(int64_t));
     paddedSize = N + addi;
     arrayAddr[inputId] = X;
     init(arrayAddr, inputId, paddedSize);
@@ -126,8 +148,8 @@ int main(int argc, const char* argv[]) {
     // arrayAddr[inputId] = X;
     bucketx1 = (Bucket_x*)malloc(N * sizeof(Bucket_x));
     bucketx2 = (Bucket_x*)malloc(N * sizeof(Bucket_x));
-    arrayAddr[inputId] = (int*)bucketx1;
-    arrayAddr[inputId+1] = (int*)bucketx2;
+    arrayAddr[inputId] = (int64_t*)bucketx1;
+    arrayAddr[inputId+1] = (int64_t*)bucketx2;
     paddedSize = N;
     init(arrayAddr, inputId, paddedSize);
   } else if (sortId == 2) {
@@ -140,8 +162,8 @@ int main(int argc, const char* argv[]) {
     std::cout << "Threash: " << thresh << std::endl;
     FAN_OUT = greatestPowerOfTwoLessThan(thresh)/2;
     assert(FAN_OUT >= 2 && "M/Z must greater than 2");
-    int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
-    unsigned int bucketSize = bucketNum * BUCKET_SIZE;
+    int64_t bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
+    int64_t bucketSize = bucketNum * BUCKET_SIZE;
     std::cout << "TOTAL BUCKET SIZE: " << bucketSize << std::endl;
     std::cout << "BUCKET NUMBER: " << bucketNum << std::endl;
     std::cout << "BUCKET SIZE: " << BUCKET_SIZE << std::endl; 
@@ -151,15 +173,15 @@ int main(int argc, const char* argv[]) {
     memset(bucketx1, 0xff, bucketSize*sizeof(Bucket_x));
     memset(bucketx2, 0xff, bucketSize*sizeof(Bucket_x));
     std::cout << "After bucket malloc\n";
-    arrayAddr[1] = (int*)bucketx1;
-    arrayAddr[2] = (int*)bucketx2;
-    X = (int *) malloc(N * sizeof(int));
+    arrayAddr[1] = (int64_t*)bucketx1;
+    arrayAddr[2] = (int64_t*)bucketx2;
+    X = (int64_t*) malloc(N * sizeof(int64_t));
     arrayAddr[inputId] = X;
     paddedSize = N;
     init(arrayAddr, inputId, paddedSize);
   } else if (sortId == 0 || sortId == 1) {
     inputId = 3;
-    X = (int *)malloc(N * sizeof(int));
+    X = (int64_t*)malloc(N * sizeof(int64_t));
     arrayAddr[inputId] = X;
     paddedSize = N;
     init(arrayAddr, inputId, paddedSize);
@@ -219,32 +241,3 @@ int main(int argc, const char* argv[]) {
     free(resN);
     return ret;
 }
-
-// trusted function
-void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN) {
-  // TODO: Utilize Memory alloction -- structureId
-  if (sortId == 0) {
-    is_tight = 1;
-    if (paddedSize / M <= 128) {
-      *resId = ObliviousTightSort(structureId, paddedSize, structureId + 1, structureId);
-    } else {
-      *resId = ObliviousTightSort2(structureId, paddedSize, structureId+1, structureId+2, structureId+1, structureId);
-    }
-  } else if (sortId == 1) {
-    if (paddedSize / M <= 128) {
-      is_tight = 0;
-      std::pair<int, int> ans = ObliviousLooseSort(structureId, paddedSize, structureId + 1, structureId);
-      *resId = ans.first;
-      *resN = ans.second;
-    } else {
-      std::pair<int, int> ans = ObliviousLooseSort2(structureId, paddedSize, structureId + 1, structureId + 2, structureId + 1, structureId);
-      *resId = ans.first;
-      *resN = ans.second;
-    }
-  } else if (sortId == 2) {
-    *resId = bucketOSort(structureId, paddedSize);
-  } else if (sortId == 4) {
-    *resId = merge_sort(structureId, structureId+1);
-  }
-}
-
