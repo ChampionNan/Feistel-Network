@@ -4,7 +4,7 @@
 extern int is_tight;
 mbedtls_aes_context aes;
 unsigned char key[16];
-int base;
+int64_t base;
 int64_t max_num;
 int ROUND = 3;
 int fail = 0;
@@ -280,6 +280,11 @@ std::pair<int64_t, int64_t> OneLevelPartition(int inStructureId, int64_t inSize,
       writeBackNum = index2 - index1 + 1;
       if (writeBackNum > smallSectionSize) {
         printf("Overflow in small section M/p0: %d > %d\n", writeBackNum, smallSectionSize);
+        std::cout << "PartitionIdx: " << j <<std::endl;
+        for (int g = 0; g < partitionIdx.size(); ++g) {
+          printf("%d ", partitionIdx[g]);
+        }
+        std::cout << std::endl;
         fail = 1;
         return {-1, -1};
       }

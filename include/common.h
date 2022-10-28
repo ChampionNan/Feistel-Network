@@ -28,7 +28,7 @@
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
-#define DUMMY 0xffffffff
+#define DUMMY -1
 #define NULLCHAR '\0'
 #define MY_RAND_MAX 2147483647
 
