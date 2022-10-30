@@ -125,7 +125,7 @@ int main(int argc, const char* argv[]) {
   // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
 
   // 0: OQSORT-Tight, 1: OQSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
-  int sortId = 1;
+  int sortId = 2;
   int inputId = 0;
 
   double beta = calParams();
