@@ -3,7 +3,20 @@
 std::random_device dev2;
 std::mt19937 rng2(dev2());
 mbedtls_aes_context aes2;
-unsigned char key2[16];
+unsigned char key2[32];
+unsigned char iv[] = {0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+unsigned char iv1[] = {0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+unsigned char nonce_counter[16] = {0};
+unsigned char stream_block[16] = {0};
+unsigned char nonce_counter1[16] = {0};
+unsigned char stream_block1[16] = {0};
+size_t nc_off = 0;
+size_t nc_off1 = 0;
+size_t iv_offset = 0;
+size_t iv_offset1 = 0;
+const unsigned char data_unit[16] = {0};
+mbedtls_aes_xts_context ctx_xts;
+
 
 Heap::Heap(HeapNode *a, int64_t size, int64_t bsize) {
   heapSize = size;
@@ -92,35 +105,48 @@ void aes_init() {
     printf(" failed\n ! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret);
     return;
   }
-  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key2, 16)) != 0) {
+  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key2, 32)) != 0) {
     printf(" failed\n ! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret);
     return ;
   }
-  mbedtls_aes_setkey_enc(&aes2, key2, 128);
+  mbedtls_aes_setkey_enc(&aes2, key2, 256);
+}
+
+void aes2_init() {
+  mbedtls_aes_xts_init(&ctx_xts);
+  mbedtls_ctr_drbg_context ctr_drbg;
+  mbedtls_entropy_context entropy;
+  char *pers = "xts generate key";
+  int ret;
+  mbedtls_entropy_init(&entropy);
+  mbedtls_ctr_drbg_init(&ctr_drbg);
+  if((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (unsigned char *) pers, strlen(pers))) != 0) {
+    printf(" failed\n ! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret);
+    return;
+  }
+  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key2, 32)) != 0) {
+    printf(" failed\n ! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret);
+    return ;
+  }
+  mbedtls_aes_xts_setkey_enc( &ctx_xts, key2, 256 );
 }
 
 // Assume blockSize = 16 * k
 void cbc_encrypt(int64_t* buffer, int64_t blockSize) {
-  int64_t boundary = blockSize / 16;
-  uint64_t *enc_out = (uint64_t*)malloc(sizeof(uint64_t)*2);
-  for (int64_t i = 0; i < boundary; ++i) {
-    // printf("Before Enc %d\n", i);
-    mbedtls_aes_crypt_ecb(&aes2, MBEDTLS_AES_ENCRYPT, (unsigned char*)(&buffer[2*i]), (unsigned char*)enc_out);
-    memcpy(&buffer[2*i], enc_out, 16);  
-    // printf("After Enc Read\n");
-  }
-  free(enc_out);
+  // int64_t boundary = blockSize / 16;
+  // printf("BlcokSize: %d\n", blockSize);
+  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (unsigned char*)buffer, (unsigned char*)buffer);
+  // mbedtls_aes_crypt_cfb128(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, &iv_offset, iv, (unsigned char*)buffer, (unsigned char*)buffer);
+  // mbedtls_aes_crypt_xts(&ctx_xts, MBEDTLS_AES_ENCRYPT, blockSize, data_unit, (unsigned char*)buffer, (unsigned char*)buffer);
   return;
 }
 // Assume blockSize = 16 * k
 void cbc_decrypt(int64_t* buffer, int64_t blockSize) {
-  int64_t boundary = blockSize / 16;
-  uint64_t *dec_out = (uint64_t*)malloc(sizeof(uint64_t)*2);
-  for (int64_t i = 0; i < boundary; ++i) {
-    mbedtls_aes_crypt_ecb(&aes2, MBEDTLS_AES_DECRYPT, (unsigned char*)(&buffer[2*i]), (unsigned char*)dec_out);
-    memcpy(&buffer[2*i], dec_out, 16);   
-  }
-  free(dec_out);
+  // int64_t boundary = blockSize / 16;
+  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (unsigned char*)(&buffer[2*i]), (unsigned char*)(&buffer[2*i]));
+  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (unsigned char*)buffer, (unsigned char*)buffer);
+  // mbedtls_aes_crypt_cfb128(&aes2, MBEDTLS_AES_DECRYPT, blockSize, &iv_offset1, iv1, (unsigned char*)buffer, (unsigned char*)buffer);
+  // mbedtls_aes_crypt_xts(&ctx_xts, MBEDTLS_AES_DECRYPT, blockSize, data_unit, (unsigned char*)buffer, (unsigned char*)buffer);
   return;
 }
 
@@ -381,8 +407,8 @@ int64_t smallestPowerOfKLargerThan(int64_t n, int64_t k) {
 void print(int64_t* array, int64_t size) {
   int64_t i;
   for (i = 0; i < size; i++) {
-    printf("%ld", array[i]);
-    if ((i != 0) && (i % 5 == 0)) {
+    printf("%ld ", array[i]);
+    if ((i != 0) && (i % 6 == 0)) {
       printf("\n");
     }
   }

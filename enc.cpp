@@ -43,7 +43,7 @@ void init(int64_t **arrayAddr, int structureId, int64_t size) {
   if (structureSize[structureId] == 8) {
     int64_t *addr = (int64_t*)arrayAddr[structureId];
     for (i = 0; i < size; i++) {
-      addr[i] = (size - i);
+      addr[i] = size - i;
     }
   } else if (structureSize[structureId] == 16) {
     Bucket_x *addr = (Bucket_x*)arrayAddr[structureId];
@@ -79,6 +79,23 @@ void callSort(int sortId, int structureId, int64_t paddedSize, int *resId, int64
     *resId = bucketOSort(structureId, paddedSize);
   } else if (sortId == 4) {
     *resId = merge_sort(structureId, structureId+1);
+  } else {
+    Bucket_x *test = (Bucket_x*)malloc(sizeof(Bucket_x)*4);
+    test[0].x = -1;
+    test[0].key = -2; 
+    test[1].x = 800000;
+    test[1].key = 800001;
+    test[2].x = 3;
+    test[2].key = 4;
+    test[3].x = 4; 
+    test[3].key = 5;
+    aes_init();/*
+    cbc_encrypt(test, 32);
+    printf("%ld, %ld, %ld, %ld\n", test[0], test[1], test[2], test[3]);
+    cbc_decrypt(test, 32);
+    printf("%ld, %ld, %ld, %ld\n", test[0], test[1], test[2], test[3]);*/
+    freeAllocate(1, 1, 8);
+    // opOneLinearScanBlock(0, (int64_t*)tests, )
   }
 }
 
@@ -222,6 +239,8 @@ int main(int argc, const char* argv[]) {
       // Sample Loose has different test & print
       testWithDummy(arrayAddr, *resId, *resN);
     }
+  } else {
+    callSort(sortId, inputId, paddedSize, resId, resN);
   }
   end = std::chrono::high_resolution_clock::now();
   // step4: std::cout execution time
@@ -229,7 +248,7 @@ int main(int argc, const char* argv[]) {
   std::cout << "Finished. Duration Time: " << duration.count() << " seconds" << std::endl;
   // std::cout.precision(4);
   printf("IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
-  print(arrayAddr, *resId, *resN);
+  // print(arrayAddr, *resId, *resN);
   // step5: exix part
   exit:
     for (int i = 0; i < NUM_STRUCTURES; ++i) {

@@ -23,9 +23,9 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 800000// 83886080// 2147483648L// 536870912// 1073741824
-#define M 100000// 4194304 // 16777216 // 2097152
-#define BLOCK_DATA_SIZE 4
+#define N 8000// 83886080// 2147483648L// 536870912// 1073741824
+#define M 1000// 4194304 // 16777216 // 2097152
+#define BLOCK_DATA_SIZE 2
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
 #define DUMMY -1
@@ -80,6 +80,7 @@ public:
 void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int structureId, int write, int64_t dummyNum);
 void ocall_print_string(const char *str);
 void aes_init();
+void aes2_init();
 void cbc_encrypt(int64_t* buffer, int64_t blockSize);
 void cbc_decrypt(int64_t* buffer, int64_t blockSize);
 void OcallReadBlock(int64_t index, int64_t* buffer, int64_t blockSize, int structureId);
