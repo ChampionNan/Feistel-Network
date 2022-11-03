@@ -3,20 +3,10 @@
 std::random_device dev2;
 std::mt19937 rng2(dev2());
 mbedtls_aes_context aes2;
-unsigned char key2[32];
-unsigned char iv[] = {0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+unsigned char key2[32] = {0};
+unsigned char iv[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 unsigned char iv1[] = {0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-unsigned char nonce_counter[16] = {0};
-unsigned char stream_block[16] = {0};
-unsigned char nonce_counter1[16] = {0};
-unsigned char stream_block1[16] = {0};
-size_t nc_off = 0;
-size_t nc_off1 = 0;
-size_t iv_offset = 0;
-size_t iv_offset1 = 0;
-const unsigned char data_unit[16] = {0};
 mbedtls_aes_xts_context ctx_xts;
-
 
 Heap::Heap(HeapNode *a, int64_t size, int64_t bsize) {
   heapSize = size;
@@ -110,43 +100,35 @@ void aes_init() {
     return ;
   }
   mbedtls_aes_setkey_enc(&aes2, key2, 256);
-}
-
-void aes2_init() {
-  mbedtls_aes_xts_init(&ctx_xts);
-  mbedtls_ctr_drbg_context ctr_drbg;
-  mbedtls_entropy_context entropy;
-  char *pers = "xts generate key";
-  int ret;
-  mbedtls_entropy_init(&entropy);
-  mbedtls_ctr_drbg_init(&ctr_drbg);
-  if((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (unsigned char *) pers, strlen(pers))) != 0) {
-    printf(" failed\n ! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret);
-    return;
-  }
-  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key2, 32)) != 0) {
-    printf(" failed\n ! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret);
-    return ;
-  }
-  mbedtls_aes_xts_setkey_enc( &ctx_xts, key2, 256 );
+  mbedtls_aes_setkey_dec(&aes2, key2, 256);
 }
 
 // Assume blockSize = 16 * k
 void cbc_encrypt(int64_t* buffer, int64_t blockSize) {
   // int64_t boundary = blockSize / 16;
   // printf("BlcokSize: %d\n", blockSize);
-  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (unsigned char*)buffer, (unsigned char*)buffer);
+  unsigned char *out = (unsigned char*)malloc(blockSize);
+  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, out);
+  memcpy(buffer, (int64_t*)out, blockSize);
+  free(out); 
+  // mbedtls_aes_crypt_cbc( &aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
+  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (uint8_t*)buffer, (uint8_t*)buffer);
+  // mbedtls_des3_crypt_cbc( &des3, MBEDTLS_DES_ENCRYPT, blockSize, key2, (uint8_t*)buffer, (uint8_t*)buffer);
   // mbedtls_aes_crypt_cfb128(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, &iv_offset, iv, (unsigned char*)buffer, (unsigned char*)buffer);
-  // mbedtls_aes_crypt_xts(&ctx_xts, MBEDTLS_AES_ENCRYPT, blockSize, data_unit, (unsigned char*)buffer, (unsigned char*)buffer);
   return;
 }
 // Assume blockSize = 16 * k
 void cbc_decrypt(int64_t* buffer, int64_t blockSize) {
   // int64_t boundary = blockSize / 16;
   // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (unsigned char*)(&buffer[2*i]), (unsigned char*)(&buffer[2*i]));
-  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (unsigned char*)buffer, (unsigned char*)buffer);
+  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
+  unsigned char *out = (unsigned char*)malloc(blockSize);
+  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv, (uint8_t*)buffer, out);
+  memcpy(buffer, (int64_t*)out, blockSize);
+  free(out);
+  // mbedtls_aes_crypt_cbc( &aes2, MBEDTLS_AES_DECRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
+  // mbedtls_des3_crypt_cbc( &des3, MBEDTLS_DES_DECRYPT, blockSize, key2, (uint8_t*)buffer, (uint8_t*)buffer);
   // mbedtls_aes_crypt_cfb128(&aes2, MBEDTLS_AES_DECRYPT, blockSize, &iv_offset1, iv1, (unsigned char*)buffer, (unsigned char*)buffer);
-  // mbedtls_aes_crypt_xts(&ctx_xts, MBEDTLS_AES_DECRYPT, blockSize, data_unit, (unsigned char*)buffer, (unsigned char*)buffer);
   return;
 }
 
@@ -162,7 +144,7 @@ void OcallReadBlock(int64_t index, int64_t* buffer, int64_t blockSize, int struc
     memcpy(buffer, arrayAddr[structureId] + index, blockSize); 
   } else {
     // read encrypted data
-    // printf("In encrypt read\n");
+    // std::cout << "In readB:\n";
     int64_t* readBuf = (int64_t*)malloc(blockSize);
     memcpy(readBuf, arrayAddr[structureId] + index, blockSize); 
     cbc_decrypt(readBuf, blockSize);
@@ -182,10 +164,15 @@ void OcallWriteBlock(int64_t index, int64_t* buffer, int64_t blockSize, int stru
   if (nonEnc) {
     memcpy(arrayAddr[structureId] + index, buffer, blockSize);
   } else {
+    // std::cout << "In writeB:\n";
     int64_t* writeBuf = (int64_t*)malloc(blockSize);
+    // std::cout << "In writeB1:\n";
     memcpy(writeBuf, buffer, blockSize);
+    // std::cout << "In writeB2:\n";
     cbc_encrypt(writeBuf, blockSize);
-    memcpy(arrayAddr[structureId] + index, writeBuf, blockSize);
+    // std::cout << "In writeB3:\n";
+    memcpy((int64_t*)((int64_t*)arrayAddr[structureId]+index), writeBuf, blockSize);
+    // std::cout << "In writeB4:\n";
     free(writeBuf);
   }
   IOcost += 1;
@@ -221,6 +208,7 @@ void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int 
   int64_t boundary = (int64_t)((blockSize + encBsize - 1 )/ encBsize);
   int64_t Msize, i;
   if (!write) {
+    // std::cout << "In read:\n";
     // OcallReadBlock(index, block, blockSize * structureSize[structureId], structureId);
     // printf("blockSize: %d, encBsize: %d\n", blockSize, encBsize);
     for (i = 0; i < boundary; ++i) {
@@ -229,12 +217,14 @@ void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int 
       OcallReadBlock(index + multi * i * encBsize, &block[i * encBsize * multi], Msize * structureSize[structureId], structureId);
     }
   } else {
+    // std::cout << "In write:\n";
     // OcallWriteBlock(index, block, blockSize * structureSize[structureId], structureId);
     for (i = 0; i < boundary; ++i) {
       Msize = std::min(encBsize, blockSize - i * encBsize);
       OcallWriteBlock(index + multi * i * encBsize, &block[i * encBsize * multi], Msize * structureSize[structureId], structureId);
     }
     if (dummyNum > 0) {
+      std::cout << "In dummy write:\n";
       int64_t *junk = (int64_t*)malloc(dummyNum * multi * sizeof(int64_t));
       for (int64_t j = 0; j < dummyNum * multi; ++j) {
         junk[j] = DUMMY;
@@ -245,6 +235,7 @@ void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int 
         Msize = std::min(encBsize, dummyNum - j * encBsize);
         OcallWriteBlock(startIdx + multi * j * encBsize, &junk[j * encBsize * multi], Msize * structureSize[structureId], structureId);
       }
+      free(junk);
     }
   }
   return;
@@ -454,6 +445,15 @@ void test(int64_t **arrayAddr, int structureId, int64_t size) {
       pass &= ((arrayAddr[structureId])[i-1] <= (arrayAddr[structureId])[i]);
       if (!pass) {
         std::cout << (arrayAddr[structureId])[i-1] << ' ' << (arrayAddr[structureId])[i];
+        break;
+      }
+    }
+  } else {
+    Bucket_x *addr = (Bucket_x*)arrayAddr[structureId];
+    for (i = 1; i < size; i++) {
+      pass &= (addr[i-1].x <= addr[i].x);
+      if (!pass) {
+        std::cout << addr[i-1].x << ' ' << addr[i].x;
         break;
       }
     }

@@ -86,6 +86,7 @@ void mergeSplit(int inputStructureId, int outputStructureId, int64_t *inputId, i
   // printf("In mergesplit!\n");
   Bucket_x *inputBuffer = (Bucket_x*)malloc(k * sizeof(Bucket_x) * BUCKET_SIZE);
   for (int64_t i = 0; i < k; ++i) {
+    nonEnc = 0;
     opOneLinearScanBlock(2 * bucketAddr[inputId[i]], (int64_t*)(&inputBuffer[i * BUCKET_SIZE]), BUCKET_SIZE, inputStructureId, 0, 0);
   }
   /*if (iter == 1) {
@@ -93,10 +94,10 @@ void mergeSplit(int inputStructureId, int outputStructureId, int64_t *inputId, i
     return;
   }*/
   if (iter == 0 && (inputBuffer[0].x > 800000 || inputBuffer[0].x < 0)) {
-    //printf("----------------------------------------------\n");
+    printf("----------------------------------------------\n");
   }
   if (iter != 0 && (inputBuffer[0].x > 800000 || inputBuffer[0].x < 0)) {
-    //printf("*************************************************\n");
+    printf("*************************************************\n");
   }
   // printf("in mergesplit: %ld, ", inputBuffer[0].x);
   // step2. process k buckets
@@ -197,6 +198,7 @@ int bucketOSort(int structureId, int64_t size) {
   MERGE_BATCH_SIZE = HEAP_NODE_SIZE;
   std::cout << "Mem1's memory: " << mem1 << std::endl;
   std::cout << "Mem2's memory: " << HEAP_NODE_SIZE*(bucketNum+1) << std::endl;
+  std::cout << "Sizeof bucket: " <<sizeof(Bucket_x) << std::endl;
   if (mem1 > M || MERGE_BATCH_SIZE > M) {
     std::cout << "Memory exceed\n";
   }
@@ -220,7 +222,7 @@ int bucketOSort(int structureId, int64_t size) {
   int64_t each;
   int64_t avg = size / bucketNum;
   int64_t remainder = size % bucketNum;
-  std::uniform_int_distribution<int64_t> dist{0, bucketNum-1};
+  std::uniform_int_distribution<int64_t> dist{0, bucketNum-1}; // 9223372036854775807
   aes_init();
   printf("Initial Data\n");
   for (int64_t i = 0; i < bucketNum; ++i) {
@@ -295,9 +297,7 @@ int bucketOSort(int structureId, int64_t size) {
       }
       printf("after %luth merge split, we have %ld tuples\n", i, count);
       outIdx = 0;
-      // print(arrayAddr, structureId+1, BUCKET_SIZE*bucketNum);
-      // return structureId+1;
-      //print(arrayAddr, structureId + 1, bucketNum * BUCKET_SIZE);
+      // print(arrayAddr, structureId + 1, bucketNum * BUCKET_SIZE);
     } else {
       for (int64_t j = 0; j < jboundary; ++j) {
         //printf("j: %d\n", j);
@@ -323,6 +323,8 @@ int bucketOSort(int structureId, int64_t size) {
       // testRealNum(structureId);
       // cnt.clear();
       outIdx = 0;
+      // print(arrayAddr, structureId, BUCKET_SIZE*bucketNum);
+      // return structureId;
       //print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
     }
     std::cout << "----------------------------------------\n";
@@ -332,20 +334,20 @@ int bucketOSort(int structureId, int64_t size) {
   free(inputId);
   free(outputId);
   int64_t resultId = 0;
-  printf("Finish RBA! IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
+  printf("Finish RBA! IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/2));
   if (ranBinAssignIters % 2 == 0) {
     print(arrayAddr, structureId, bucketNum * BUCKET_SIZE);
     for (int64_t i = 0; i < bucketNum; ++i) {
       bucketSort(structureId, numRow1[i], bucketAddr[i]);
     }
-    printf("Finish internal sort! IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
+    printf("Finish internal sort! IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/2));
     kWayMergeSort(structureId, structureId + 1, numRow1, bucketAddr, bucketNum);
     resultId = structureId + 1;
   } else {
     for (int64_t i = 0; i < bucketNum; ++i) {
       bucketSort(structureId + 1, numRow2[i], bucketAddr[i]);
     }
-    printf("Finish internal sort! IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
+    printf("Finish internal sort! IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/2));
     kWayMergeSort(structureId + 1, structureId, numRow2, bucketAddr, bucketNum);
     resultId = structureId;
   }

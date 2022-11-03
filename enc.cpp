@@ -80,53 +80,26 @@ void callSort(int sortId, int structureId, int64_t paddedSize, int *resId, int64
   } else if (sortId == 4) {
     *resId = merge_sort(structureId, structureId+1);
   } else {
-    Bucket_x *test = (Bucket_x*)malloc(sizeof(Bucket_x)*4);
-    test[0].x = -1;
-    test[0].key = -2; 
-    test[1].x = 800000;
-    test[1].key = 800001;
-    test[2].x = 3;
-    test[2].key = 4;
-    test[3].x = 4; 
-    test[3].key = 5;
-    aes_init();/*
-    cbc_encrypt(test, 32);
-    printf("%ld, %ld, %ld, %ld\n", test[0], test[1], test[2], test[3]);
-    cbc_decrypt(test, 32);
-    printf("%ld, %ld, %ld, %ld\n", test[0], test[1], test[2], test[3]);*/
-    freeAllocate(1, 1, 8);
-    // opOneLinearScanBlock(0, (int64_t*)tests, )
-  }
-}
-
-double calRes(double x) {
-  double B = BLOCK_DATA_SIZE;
-  double g = 1;
-  double bottom = 1.0*M*M*(KAPPA+1+2*log(1.0*N/M));
-  g = bottom*x*x*(1-x)/((1+x)*(1+x)*(1+x/2)*(1+2*x));
-  g -= 2*(1+2*x)*N*B;
-  return g;
-}
-
-// TODO: Need testing
-double calParams() {
-  double res = 1, left = 0.0, right = 0.5, mid;
-  double y, resleft, resright;
-  int times = 0;
-  while (times < 20 ) {
-    mid = (left+right)/2;
-    y = calRes(mid);
-    resleft = calRes(left);
-    resright = calRes(right);
-    if (resleft * y < 0) {
-      right = mid;
-    } else {
-      left = mid;
+    Bucket_x *test = (Bucket_x*)malloc(sizeof(Bucket_x)*N);
+    Bucket_x *test2 = (Bucket_x*)malloc(sizeof(Bucket_x)*2*N);
+    for (int i = 0; i < N; ++i) {
+      test[i].x = N - i;
+      test[i].key = N - i;
     }
-    times ++;
+    aes_init();
+    freeAllocate(1, 1, 4*N);
+    nonEnc = 0;
+    printf("Before encrypt: \n");
+    print((int64_t*)test, 2*N);
+    for (int i = 0; i < 1; ++i) {
+      opOneLinearScanBlock(0, (int64_t*)test, N, 1, 1, 0);
+      opOneLinearScanBlock(0, (int64_t*)test2, N, 1, 0, 0);
+    }
+    printf("After decrypt: \n");
+    print((int64_t*)test2, 2*N);
+    free(test);
+    free(test2);
   }
-  // std::cout << "Gap: " << y << std::endl;
-  return mid;
 }
 
 /* main function */
@@ -142,12 +115,12 @@ int main(int argc, const char* argv[]) {
   // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
 
   // 0: OQSORT-Tight, 1: OQSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort
-  int sortId = 2;
+  int sortId = 5;
   int inputId = 0;
 
-  double beta = calParams();
-  double alpha = (KAPPA+1+log(1.0*N))*4*(1+beta)*(1+2*beta)/beta/beta/M;
-  int p = ceil((1+2*beta)*N/M);
+  // double beta = calParams();
+  // double alpha = (KAPPA+1+log(1.0*N))*4*(1+beta)*(1+2*beta)/beta/beta/M;
+  // int p = ceil((1+2*beta)*N/M);
   // printf("Parameters: alpha: %f, beta: %f, p: %d\n", alpha, beta, p);
   // step1: init test numbers
   if (sortId == 3) {
@@ -247,13 +220,13 @@ int main(int argc, const char* argv[]) {
   duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "Finished. Duration Time: " << duration.count() << " seconds" << std::endl;
   // std::cout.precision(4);
-  printf("IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
-  // print(arrayAddr, *resId, *resN);
+  printf("IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/2));
+  print(arrayAddr, *resId, *resN);
   // step5: exix part
   exit:
     for (int i = 0; i < NUM_STRUCTURES; ++i) {
       if (arrayAddr[i]) {
-        free(arrayAddr[i]);
+        // free(arrayAddr[i]);
       }
     }
     free(resId);

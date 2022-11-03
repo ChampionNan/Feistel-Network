@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <mbedtls/aes.h>
+#include <mbedtls/des.h>
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 
@@ -23,9 +24,9 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 8000// 83886080// 2147483648L// 536870912// 1073741824
+#define N 8// 83886080// 2147483648L// 536870912// 1073741824
 #define M 1000// 4194304 // 16777216 // 2097152
-#define BLOCK_DATA_SIZE 2
+#define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
 #define DUMMY -1
@@ -45,15 +46,16 @@ extern double IOcost;
 extern int64_t *arrayAddr[NUM_STRUCTURES];
 extern int nonEnc;
 
-// TODO: set up structure size
-const int structureSize[NUM_STRUCTURES] = {sizeof(int64_t),
-  2 * sizeof(int64_t), 2 * sizeof(int64_t),
-  sizeof(int64_t), sizeof(int64_t), sizeof(int64_t), sizeof(int64_t)};
-
 typedef struct {
   int64_t x;
   int64_t key;
 } Bucket_x;
+
+// TODO: set up structure size
+const int structureSize[NUM_STRUCTURES] = {sizeof(int64_t),
+  sizeof(Bucket_x), sizeof(Bucket_x),
+  sizeof(int64_t), sizeof(int64_t), sizeof(int64_t), sizeof(int64_t)};
+
 
 struct HeapNode {
   Bucket_x *data;
