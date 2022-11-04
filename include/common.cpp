@@ -122,8 +122,12 @@ void cbc_decrypt(int64_t* buffer, int64_t blockSize) {
   // int64_t boundary = blockSize / 16;
   // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (unsigned char*)(&buffer[2*i]), (unsigned char*)(&buffer[2*i]));
   // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
+  if (blockSize != 16) {
+    
+  }
   unsigned char *out = (unsigned char*)malloc(blockSize);
   mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv, (uint8_t*)buffer, out);
+  mbedtls_aes_crypt_ecb(&aes2, MBEDTLS_AES_ENCRYPT, input, encrypt_output);
   memcpy(buffer, (int64_t*)out, blockSize);
   free(out);
   // mbedtls_aes_crypt_cbc( &aes2, MBEDTLS_AES_DECRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);

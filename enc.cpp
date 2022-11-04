@@ -88,7 +88,7 @@ void callSort(int sortId, int structureId, int64_t paddedSize, int *resId, int64
     }
     aes_init();
     freeAllocate(1, 1, 4*N);
-    nonEnc = 0;
+    nonEnc = 1;
     printf("Before encrypt: \n");
     print((int64_t*)test, 2*N);
     for (int i = 0; i < 1; ++i) {
