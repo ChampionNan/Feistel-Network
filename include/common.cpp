@@ -2,16 +2,16 @@
 
 std::random_device dev2;
 std::mt19937 rng2(dev2());
+unsigned char key2[16];
 mbedtls_aes_context aes2;
-unsigned char key2[32] = {0};
-unsigned char iv[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-unsigned char iv1[] = {0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-mbedtls_aes_xts_context ctx_xts;
+mbedtls_ctr_drbg_context ctr_drbg;
+mbedtls_entropy_context entropy;
 
-Heap::Heap(HeapNode *a, int64_t size, int64_t bsize) {
+
+Heap::Heap(HeapNode *a, int size, int bsize) {
   heapSize = size;
   harr = a;
-  int64_t i = (heapSize - 1) / 2;
+  int i = (heapSize - 1) / 2;
   batchSize = bsize;
   while (i >= 0) {
     Heapify(i);
@@ -19,10 +19,10 @@ Heap::Heap(HeapNode *a, int64_t size, int64_t bsize) {
   }
 }
 
-void Heap::Heapify(int64_t i) {
-  int64_t l = left(i);
-  int64_t r = right(i);
-  int64_t target = i;
+void Heap::Heapify(int i) {
+  int l = left(i);
+  int r = right(i);
+  int target = i;
 
   if (l < heapSize && cmpHelper(harr[i].data + harr[i].elemIdx % batchSize, harr[l].data + harr[l].elemIdx % batchSize)) {
     target = l;
@@ -36,11 +36,11 @@ void Heap::Heapify(int64_t i) {
   }
 }
 
-int64_t Heap::left(int64_t i) {
+int Heap::left(int i) {
   return (2 * i + 1);
 }
 
-int64_t Heap::right(int64_t i) {
+int Heap::right(int i) {
   return (2 * i + 2);
 }
 
@@ -54,7 +54,7 @@ HeapNode* Heap::getRoot() {
   return &harr[0];
 }
 
-int64_t Heap::getHeapSize() {
+int Heap::getHeapSize() {
   return heapSize;
 }
 
@@ -85,8 +85,6 @@ void ocall_print_string(const char *str) {
 
 void aes_init() {
   mbedtls_aes_init(&aes2);
-  mbedtls_ctr_drbg_context ctr_drbg;
-  mbedtls_entropy_context entropy;
   char *pers = "aes2 generate key";
   int ret;
   mbedtls_entropy_init(&entropy);
@@ -95,95 +93,94 @@ void aes_init() {
     printf(" failed\n ! mbedtls_ctr_drbg_init returned -0x%04x\n", -ret);
     return;
   }
-  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key2, 32)) != 0) {
+  if((ret = mbedtls_ctr_drbg_random(&ctr_drbg, key2, 16)) != 0) {
     printf(" failed\n ! mbedtls_ctr_drbg_random returned -0x%04x\n", -ret);
     return ;
   }
-  mbedtls_aes_setkey_enc(&aes2, key2, 256);
-  mbedtls_aes_setkey_dec(&aes2, key2, 256);
+  mbedtls_aes_setkey_enc(&aes2, key2, 128);
+  mbedtls_aes_setkey_dec(&aes2, key2, 128);
 }
 
 // Assume blockSize = 16 * k
-void cbc_encrypt(int64_t* buffer, int64_t blockSize) {
-  // int64_t boundary = blockSize / 16;
-  // printf("BlcokSize: %d\n", blockSize);
-  unsigned char *out = (unsigned char*)malloc(blockSize);
-  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, out);
-  memcpy(buffer, (int64_t*)out, blockSize);
-  free(out); 
-  // mbedtls_aes_crypt_cbc( &aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
-  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (uint8_t*)buffer, (uint8_t*)buffer);
-  // mbedtls_des3_crypt_cbc( &des3, MBEDTLS_DES_ENCRYPT, blockSize, key2, (uint8_t*)buffer, (uint8_t*)buffer);
-  // mbedtls_aes_crypt_cfb128(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, &iv_offset, iv, (unsigned char*)buffer, (unsigned char*)buffer);
+void cbc_encrypt(EncBlock* buffer, int blockSize) {
+  // std::cout << "In cbc_encrypt\n";
+  mbedtls_ctr_drbg_random(&ctr_drbg, (uint8_t*)(&(buffer->iv)), 16);
+  unsigned char iv[16];
+  memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
+  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
+  memcpy((uint8_t*)(&(buffer->iv)), iv, blockSize);
   return;
 }
+
 // Assume blockSize = 16 * k
-void cbc_decrypt(int64_t* buffer, int64_t blockSize) {
-  // int64_t boundary = blockSize / 16;
-  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv1, (unsigned char*)(&buffer[2*i]), (unsigned char*)(&buffer[2*i]));
-  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
-  if (blockSize != 16) {
-    
-  }
-  unsigned char *out = (unsigned char*)malloc(blockSize);
-  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, iv, (uint8_t*)buffer, out);
-  mbedtls_aes_crypt_ecb(&aes2, MBEDTLS_AES_ENCRYPT, input, encrypt_output);
-  memcpy(buffer, (int64_t*)out, blockSize);
-  free(out);
-  // mbedtls_aes_crypt_cbc( &aes2, MBEDTLS_AES_DECRYPT, blockSize, iv, (uint8_t*)buffer, (uint8_t*)buffer);
-  // mbedtls_des3_crypt_cbc( &des3, MBEDTLS_DES_DECRYPT, blockSize, key2, (uint8_t*)buffer, (uint8_t*)buffer);
-  // mbedtls_aes_crypt_cfb128(&aes2, MBEDTLS_AES_DECRYPT, blockSize, &iv_offset1, iv1, (unsigned char*)buffer, (unsigned char*)buffer);
+void cbc_decrypt(EncBlock* buffer, int blockSize) {
+  // std::cout << "In cbc_decrypt\n";
+  // unsigned char iv[16];
+  // memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
+  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
+  // memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
+  // int *a = (int*)buffer;
+  // printf("%d, %d, %d, %d\n", a[0], a[1], a[2], a[3]);
   return;
 }
 
-void OcallReadBlock(int64_t index, int64_t* buffer, int64_t blockSize, int structureId) {
-  if (blockSize == 0) {
-    // printf("Unknown data size");
-    return;
-  }
-  // memcpy(buffer, arrayAddr[structureId] + index, blockSize * structureSize[structureId]);
-  // TODO: decrypt: arrayAddr[structureId] + index 
-  if (nonEnc) {
-    // no decryption
-    memcpy(buffer, arrayAddr[structureId] + index, blockSize); 
-  } else {
-    // read encrypted data
-    // std::cout << "In readB:\n";
-    int64_t* readBuf = (int64_t*)malloc(blockSize);
-    memcpy(readBuf, arrayAddr[structureId] + index, blockSize); 
-    cbc_decrypt(readBuf, blockSize);
-    memcpy(buffer, readBuf, blockSize);
-    free(readBuf);
-  }
+// index: EncBlock, offset: int, blockSize: bytes
+void OcallRB(int index, int* buffer, int blockSize, int structureId) {
+  memcpy(buffer, &(((EncBlock*)(arrayAddr[structureId]))[index]), blockSize); 
   IOcost += 1;
 }
 
-void OcallWriteBlock(int64_t index, int64_t* buffer, int64_t blockSize, int structureId) {
+// startIdx: index of blocks, offset: data offset in the block, blockSize: bytes of real data
+void OcallReadBlock(int startIdx, int offset, int* buffer, int blockSize, int structureId) {
   if (blockSize == 0) {
-    // printf("Unknown data size");
     return;
   }
-  // memcpy(arrayAddr[structureId] + index, buffer, blockSize * structureSize[structureId]);
-  // TODO: encrypt buffer
+  EncBlock *readBuffer = (EncBlock*)malloc(sizeof(EncBlock));
   if (nonEnc) {
-    memcpy(arrayAddr[structureId] + index, buffer, blockSize);
+    OcallRB(startIdx, (int*)readBuffer, sizeof(EncBlock), structureId);
+    int *a = (int*)readBuffer;
+    memcpy(buffer, (int*)readBuffer+offset*(structureSize[structureId]/sizeof(int)), blockSize);
   } else {
-    // std::cout << "In writeB:\n";
-    int64_t* writeBuf = (int64_t*)malloc(blockSize);
-    // std::cout << "In writeB1:\n";
-    memcpy(writeBuf, buffer, blockSize);
-    // std::cout << "In writeB2:\n";
-    cbc_encrypt(writeBuf, blockSize);
-    // std::cout << "In writeB3:\n";
-    memcpy((int64_t*)((int64_t*)arrayAddr[structureId]+index), writeBuf, blockSize);
-    // std::cout << "In writeB4:\n";
-    free(writeBuf);
+    OcallRB(startIdx, (int*)readBuffer, sizeof(EncBlock), structureId);
+    cbc_decrypt(readBuffer, sizeof(EncBlock)/2);
+    memcpy(buffer, (int*)readBuffer+offset*(structureSize[structureId]/sizeof(int)), blockSize);
   }
+  free(readBuffer);
+}
+
+// index: EncBlock, offset: int, blockSize: bytes(only non-enc mode could use)
+void OcallWB(int index, int offset, int* buffer, int blockSize, int structureId) {
+  memcpy((int*)(&(((EncBlock*)(arrayAddr[structureId]))[index]))+offset, buffer, blockSize);
   IOcost += 1;
+}
+
+// startIdx: index of blocks, offset(int): data offset in the block, blockSize: bytes of real data
+void OcallWriteBlock(int startIdx, int offset, int* buffer, int blockSize, int structureId) {
+  if (blockSize == 0) {
+    return;
+  }
+  EncBlock* writeBuf = (EncBlock*)malloc(sizeof(EncBlock));
+  if (nonEnc) {
+    OcallWB(startIdx, offset*(structureSize[structureId]/sizeof(int)), buffer, blockSize, structureId);
+  } else {
+    if (offset == 0) { // could write the whole block
+      memcpy((int*)writeBuf, buffer, blockSize);
+      cbc_encrypt(writeBuf, sizeof(EncBlock)/2);
+      OcallWB(startIdx, 0, (int*)writeBuf, sizeof(EncBlock), structureId);
+    } else { // read&decrypt first, later write&encrypt
+      OcallRB(startIdx, (int*)writeBuf, sizeof(EncBlock), structureId);
+      cbc_decrypt(writeBuf, sizeof(EncBlock)/2);
+      memcpy((int*)writeBuf+offset*(structureSize[structureId]/sizeof(int)), buffer, blockSize);
+      cbc_encrypt(writeBuf, sizeof(EncBlock)/2);
+      OcallWB(startIdx, 0, (int*)writeBuf, sizeof(EncBlock), structureId);
+    }
+  }
+  free(writeBuf);
 }
 
 // TODO: Set this function as OCALL
-void freeAllocate(int structureIdM, int structureIdF, int64_t size) {
+// allocate encB for outside memory
+void freeAllocate(int structureIdM, int structureIdF, int size) {
   // 1. Free arrayAddr[structureId]
   if (arrayAddr[structureIdF]) {
     free(arrayAddr[structureIdF]);
@@ -192,14 +189,15 @@ void freeAllocate(int structureIdM, int structureIdF, int64_t size) {
   if (size <= 0) {
     return;
   }
-  int64_t *addr = (int64_t*)malloc(size * sizeof(int64_t));
-  memset(addr, DUMMY, size * sizeof(int64_t));
+  int *addr = (int*)malloc(size * sizeof(EncBlock));
+  memset(addr, DUMMY, size * sizeof(EncBlock));
   // 3. assign malloc address to arrayAddr
   arrayAddr[structureIdM] = addr;
   return ;
 }
 
-void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int structureId, int write, int64_t dummyNum=0) {
+// index: start index counted by elements (count from 0), blockSize: #elements
+void opOneLinearScanBlock(int index, int* block, int blockSize, int structureId, int write, int dummyNum=0) {
   if (blockSize + dummyNum == 0) {
     return ;
   }
@@ -207,42 +205,66 @@ void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int 
     printf("Dummy padding error!");
     return ;
   }
-  int multi = structureSize[structureId] / sizeof(int64_t);
-  int64_t encBsize = BLOCK_DATA_SIZE / multi;
-  int64_t boundary = (int64_t)((blockSize + encBsize - 1 )/ encBsize);
-  int64_t Msize, i;
+  int multi = structureSize[structureId] / sizeof(int);
+  int B = BLOCK_DATA_SIZE / multi;
+  int startBIdx = index / B;
+  int startOffset = index % B;
+  int firstSize = B - startOffset;
+  int boundary = ceil(1.0 * (blockSize - firstSize) / B) + 1;
+  int opStart = 0;
+  int Msize, offset = 0;
   if (!write) {
-    // std::cout << "In read:\n";
-    // OcallReadBlock(index, block, blockSize * structureSize[structureId], structureId);
-    // printf("blockSize: %d, encBsize: %d\n", blockSize, encBsize);
-    for (i = 0; i < boundary; ++i) {
-      Msize = std::min(encBsize, blockSize - i * encBsize);
-      // printf("In %d, Msize: %d\n", i, Msize);
-      OcallReadBlock(index + multi * i * encBsize, &block[i * encBsize * multi], Msize * structureSize[structureId], structureId);
+    std::cout << "In reading B: \n";
+    for (int i = 0; i < boundary; ++i) {
+      if (i != 0 && (i != boundary - 1)) {
+        Msize = B;
+      } else if (i == 0) {
+        Msize = firstSize;
+      } else {
+        Msize = blockSize - opStart;
+      }
+      offset = (i == 0) ? startOffset : 0;
+      printf("Start Idx: %d, offset: %d, opstart: %d, Msize: %d\n", startBIdx + i, offset, opStart, Msize);
+      OcallReadBlock(startBIdx + i, offset, &block[opStart * multi], Msize * structureSize[structureId], structureId);
+      opStart += Msize;
     }
   } else {
-    // std::cout << "In write:\n";
-    // OcallWriteBlock(index, block, blockSize * structureSize[structureId], structureId);
-    for (i = 0; i < boundary; ++i) {
-      Msize = std::min(encBsize, blockSize - i * encBsize);
-      OcallWriteBlock(index + multi * i * encBsize, &block[i * encBsize * multi], Msize * structureSize[structureId], structureId);
+    for (int i = 0; i < boundary; ++i) {
+      if (i != 0 && (i != boundary - 1)) {
+        Msize = B;
+      } else if (i == 0) {
+        Msize = firstSize;
+      } else {
+        Msize = blockSize - opStart;
+      }
+      offset = (i == 0) ? startOffset : 0;
+      OcallWriteBlock(startBIdx + i, offset, &block[opStart * multi], Msize * structureSize[structureId], structureId);
+      opStart += Msize;
     }
     if (dummyNum > 0) {
-      std::cout << "In dummy write:\n";
-      int64_t *junk = (int64_t*)malloc(dummyNum * multi * sizeof(int64_t));
-      for (int64_t j = 0; j < dummyNum * multi; ++j) {
+      int *junk = (int*)malloc(dummyNum * multi * sizeof(int));
+      for (int j = 0; j < dummyNum * multi; ++j) {
         junk[j] = DUMMY;
       }
-      int64_t startIdx = index + multi * blockSize;
-      boundary = ceil(1.0 * dummyNum / encBsize);
-      for (int64_t j = 0; j < boundary; ++j) {
-        Msize = std::min(encBsize, dummyNum - j * encBsize);
-        OcallWriteBlock(startIdx + multi * j * encBsize, &junk[j * encBsize * multi], Msize * structureSize[structureId], structureId);
+      int dummyStart = (index + blockSize) / B;
+      int dummyOffset = (index + blockSize) % B;
+      int dummyFirstSize = B - dummyOffset;
+      int dummyBoundary = ceil(1.0 * (dummyNum - dummyFirstSize) / B) + 1;
+      int dummyOpStart = 0;
+      for (int j = 0; j < dummyBoundary; ++j) {
+        if (j != 0 && (j != dummyBoundary - 1)) {
+          Msize = B;
+        } else if (j == 0) {
+          Msize = dummyFirstSize;
+        } else {
+          Msize = dummyNum - dummyOpStart;
+        }
+        offset = (j == 0) ? dummyOffset : 0;
+        OcallWriteBlock(dummyStart + j, offset, &junk[dummyOpStart * multi], Msize * structureSize[structureId], structureId);
+        dummyOpStart += Msize; 
       }
-      free(junk);
     }
   }
-  return;
 }
 
 // SUPPORTINGs
@@ -253,11 +275,11 @@ int myrand() {
   return dist(mt);
 }
 
-int64_t Hypergeometric(int64_t NN, int64_t Msize, int64_t n_prime) {
-  int64_t m = 0;
+int Hypergeometric(int NN, int Msize, int n_prime) {
+  int m = 0;
   srand((unsigned)time(0));
   double rate = double(n_prime) / NN;
-  for (int64_t j = 0; j < Msize; ++j) {
+  for (int j = 0; j < Msize; ++j) {
     if (rand() / double(INT_MAX) < rate) {
       m += 1;
       n_prime -= 1;
@@ -268,10 +290,10 @@ int64_t Hypergeometric(int64_t NN, int64_t Msize, int64_t n_prime) {
   return m;
 }
 
-void shuffle(int64_t *array, int64_t n) {
-  int64_t j, t;
+void shuffle(int *array, int n) {
+  int j, t;
   if (n > 1) {
-    for (int64_t i = 0; i < n - 1; ++i) {
+    for (int i = 0; i < n - 1; ++i) {
       // TODO: shuffle error
       j = i + rand() / (INT_MAX / (n - i) + 1);
       t = array[j];
@@ -281,10 +303,10 @@ void shuffle(int64_t *array, int64_t n) {
   }
 }
 
-int64_t moveDummy(int64_t *a, int64_t size) {
+int moveDummy(int *a, int size) {
   // k: #elem != DUMMY
-  int64_t k = 0;
-  for (int64_t i = 0; i < size; ++i) {
+  int k = 0;
+  for (int i = 0; i < size; ++i) {
     if (a[i] != DUMMY) {
       if (i != k) {
         swapRow(&a[i], &a[k++]);
@@ -296,11 +318,11 @@ int64_t moveDummy(int64_t *a, int64_t size) {
   return k;
 }
 
-void swapRow(int64_t *a, int64_t *b) {
-  int64_t *temp = (int64_t*)malloc(sizeof(int64_t));
-  memmove(temp, a, sizeof(int64_t));
-  memmove(a, b, sizeof(int64_t));
-  memmove(b, temp, sizeof(int64_t));
+void swapRow(int *a, int *b) {
+  int *temp = (int*)malloc(sizeof(int));
+  memmove(temp, a, sizeof(int));
+  memmove(a, b, sizeof(int));
+  memmove(b, temp, sizeof(int));
   free(temp);
 }
 
@@ -312,7 +334,7 @@ void swapRow(Bucket_x *a, Bucket_x *b) {
   free(temp);
 }
 
-bool cmpHelper(int64_t *a, int64_t *b) {
+bool cmpHelper(int *a, int *b) {
   return (*a > *b) ? true : false;
 }
 
@@ -321,15 +343,15 @@ bool cmpHelper(Bucket_x *a, Bucket_x *b) {
 }
 
 // TODO: Later change to vector, using internal sort
-int64_t partition(int64_t *arr, int64_t low, int64_t high) {
+int partition(int *arr, int low, int high) {
   // TODO: random version
   // srand(unsigned(time(NULL)));
-  std::uniform_int_distribution<int64_t> dist{low, high};
-  int64_t randNum = dist(rng2);
+  std::uniform_int_distribution<int> dist{low, high};
+  int randNum = dist(rng2);
   swapRow(arr + high, arr + randNum);
-  int64_t *pivot = arr + high;
-  int64_t i = low - 1;
-  for (int64_t j = low; j <= high - 1; ++j) {
+  int *pivot = arr + high;
+  int i = low - 1;
+  for (int j = low; j <= high - 1; ++j) {
     if (cmpHelper(pivot, arr + j)) {
       i++;
       if (i != j) {
@@ -343,14 +365,14 @@ int64_t partition(int64_t *arr, int64_t low, int64_t high) {
   return (i + 1);
 }
 
-int64_t partition(Bucket_x *arr, int64_t low, int64_t high) {
-  std::uniform_int_distribution<int64_t> dist{low, high};
-  int64_t randNum = dist(rng2);
+int partition(Bucket_x *arr, int low, int high) {
+  std::uniform_int_distribution<int> dist{low, high};
+  int randNum = dist(rng2);
   // int randNum = rand() % (high - low + 1) + low;
   swapRow(arr + high, arr + randNum);
   Bucket_x *pivot = arr + high;
-  int64_t i = low - 1;
-  for (int64_t j = low; j <= high - 1; ++j) {
+  int i = low - 1;
+  for (int j = low; j <= high - 1; ++j) {
     if (cmpHelper(pivot, arr + j)) {
       i++;
       if (i != j) {
@@ -365,33 +387,33 @@ int64_t partition(Bucket_x *arr, int64_t low, int64_t high) {
 }
 
 
-void quickSort(int64_t *arr, int64_t low, int64_t high) {
+void quickSort(int *arr, int low, int high) {
   if (high > low) {
-    int64_t mid = partition(arr, low, high);
+    int mid = partition(arr, low, high);
     quickSort(arr, low, mid - 1);
     quickSort(arr, mid + 1, high);
   }
 }
 
-void quickSort(Bucket_x *arr, int64_t low, int64_t high) {
+void quickSort(Bucket_x *arr, int low, int high) {
   if (high > low) {
     // printf("In quickSort: %ld, %ld\n", low, high);
-    int64_t mid = partition(arr, low, high);
+    int mid = partition(arr, low, high);
     quickSort(arr, low, mid - 1);
     quickSort(arr, mid + 1, high);
   }
 }
 
-int64_t greatestPowerOfTwoLessThan(double n) {
-    int64_t k = 1;
+int greatestPowerOfTwoLessThan(double n) {
+    int k = 1;
     while (k > 0 && k < n) {
         k = k << 1;
     }
     return k >> 1;
 }
 
-int64_t smallestPowerOfKLargerThan(int64_t n, int64_t k) {
-  int64_t num = 1;
+int smallestPowerOfKLargerThan(int n, int k) {
+  int num = 1;
   while (num > 0 && num < n) {
     num = num * k;
   }
@@ -399,10 +421,10 @@ int64_t smallestPowerOfKLargerThan(int64_t n, int64_t k) {
 }
 
 // SUPPORT
-void print(int64_t* array, int64_t size) {
-  int64_t i;
+void print(int* array, int size) {
+  int i;
   for (i = 0; i < size; i++) {
-    printf("%ld ", array[i]);
+    printf("%d ", array[i]);
     if ((i != 0) && (i % 6 == 0)) {
       printf("\n");
     }
@@ -410,11 +432,11 @@ void print(int64_t* array, int64_t size) {
   printf("\n");
 }
 
-void print(int64_t **arrayAddr, int structureId, int64_t size) {
-  int64_t i;
+void print(int **arrayAddr, int structureId, int size) {
+  int i;
   std::ofstream fout("/home/data/bchenba/output.txt");
   if(structureSize[structureId] == 8) {
-    int64_t *addr = (int64_t*)arrayAddr[structureId];
+    int *addr = (int*)arrayAddr[structureId];
     for (i = 0; i < size; i++) {
       // printf("%d ", addr[i]);
       fout << addr[i] << " ";
@@ -439,10 +461,55 @@ void print(int64_t **arrayAddr, int structureId, int64_t size) {
   fout.close();
 }
 
+// size: real numbers
+void printEnc(int **arrayAddr, int structureId, int size) {
+  int i, j, blockNumber;
+  std::ofstream fout("/home/data/bchenba/res.txt");
+  EncBlock *addr = (EncBlock*)arrayAddr[structureId];
+  std::cout << "In printEnc: \n";
+  if(structureSize[structureId] == 4) {
+    blockNumber = (int)ceil(1.0*size/4);
+    for (i = 0; i < blockNumber; i++) {
+      int *addx = (int*)(&(addr[i]));
+      printf("%d: (", i);
+      for (j = 0; j < 4; ++j) {
+        fout << addx[j] << ' ';
+        std::cout << addx[j] << ' '; 
+      }
+      std::cout << ")\n";
+      std::cout << "(";/*
+      for (j = 5; j < 8; ++j) {
+        fout << addx[j] << ' ';
+        std::cout << addx[j] << ' '; 
+      }
+      std::cout << ")\n";*/
+      if (i % 5 == 0) {
+        fout << std::endl;
+        std::cout << std::endl;
+      }
+    }
+  } else if (structureSize[structureId] == 8) {
+    blockNumber = (int)ceil(1.0*size/2);
+    for (i = 0; i < blockNumber; i++) {
+      Bucket_x *addx = (Bucket_x*)(&(addr[i]));
+      for (j = 0; j < 2; ++j) {
+        fout << "(" << addx[j].x << ", " << addx[j].key << ") ";
+      }
+      if (i % 5 == 0) {
+        fout << std::endl;
+      }
+    }
+  }
+  // printf("\n");
+  fout << std::endl;
+  std::cout << "\nFinished printEnc. \n";
+  fout.close();
+}
+
 // TODO: change nt types
-void test(int64_t **arrayAddr, int structureId, int64_t size) {
+void test(int **arrayAddr, int structureId, int size) {
   int pass = 1;
-  int64_t i;
+  int i;
   // print(structureId);
   if(structureSize[structureId] == 8) {
     for (i = 1; i < size; i++) {
@@ -465,9 +532,9 @@ void test(int64_t **arrayAddr, int structureId, int64_t size) {
   printf(" TEST %s\n",(pass) ? "PASSed" : "FAILed");
 }
 
-void testWithDummy(int64_t **arrayAddr, int structureId, int64_t size) {
-  int64_t i = 0;
-  int64_t j = 0;
+void testWithDummy(int **arrayAddr, int structureId, int size) {
+  int i = 0;
+  int j = 0;
   // print(structureId);
   if(structureSize[structureId] == 8) {
     for (i = 0; i < size; ++i) {

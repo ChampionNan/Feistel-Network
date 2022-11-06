@@ -10,6 +10,7 @@
 #include <cstring>
 #include <climits>
 #include <cstdlib>
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <set>
@@ -26,7 +27,7 @@
 
 #define N 8// 83886080// 2147483648L// 536870912// 1073741824
 #define M 1000// 4194304 // 16777216 // 2097152
-#define BLOCK_DATA_SIZE 2
+#define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
 #define DUMMY -1
@@ -43,68 +44,74 @@
 
 extern int is_tight;
 extern double IOcost;
-extern int64_t *arrayAddr[NUM_STRUCTURES];
+extern int *arrayAddr[NUM_STRUCTURES];
 extern int nonEnc;
 
 typedef struct {
-  int64_t x;
-  int64_t key;
+  int x;
+  int key;
 } Bucket_x;
 
-// TODO: set up structure size
-const int structureSize[NUM_STRUCTURES] = {sizeof(int64_t),
-  sizeof(Bucket_x), sizeof(Bucket_x),
-  sizeof(int64_t), sizeof(int64_t), sizeof(int64_t), sizeof(int64_t)};
+typedef struct {
+  __uint128_t x;
+  __uint128_t iv;
+} EncBlock;
 
+// TODO: set up structure size
+// BOS: 0, 1, 2; ODS: 3, 4
+const int structureSize[NUM_STRUCTURES] = {sizeof(int), sizeof(Bucket_x), sizeof(Bucket_x), sizeof(int), sizeof(int)};
 
 struct HeapNode {
   Bucket_x *data;
-  int64_t bucketIdx;
-  int64_t elemIdx;
+  int bucketIdx;
+  int elemIdx;
 };
 
 class Heap {
   HeapNode *harr;
-  int64_t heapSize;
-  int64_t batchSize;
+  int heapSize;
+  int batchSize;
 public:
-  Heap(HeapNode *a, int64_t size, int64_t bsize);
-  void Heapify(int64_t i);
-  int64_t left(int64_t i);
-  int64_t right (int64_t i);
+  Heap(HeapNode *a, int size, int bsize);
+  void Heapify(int i);
+  int left(int i);
+  int right (int i);
   void swapHeapNode(HeapNode *a, HeapNode *b);
   HeapNode *getRoot();
-  int64_t getHeapSize();
+  int getHeapSize();
   bool reduceSizeByOne();
   void replaceRoot(HeapNode x);
 };
 
-void opOneLinearScanBlock(int64_t index, int64_t* block, int64_t blockSize, int structureId, int write, int64_t dummyNum);
+void opOneLinearScanBlock(int index, int* block, int blockSize, int structureId, int write, int dummyNum);
 void ocall_print_string(const char *str);
 void aes_init();
 void aes2_init();
-void cbc_encrypt(int64_t* buffer, int64_t blockSize);
-void cbc_decrypt(int64_t* buffer, int64_t blockSize);
-void OcallReadBlock(int64_t index, int64_t* buffer, int64_t blockSize, int structureId);
-void OcallWriteBlock(int64_t index, int64_t* buffer, int64_t blockSize, int structureId);
-void freeAllocate(int structureIdM, int structureIdF, int64_t size);
+void cbc_encrypt(int* buffer, int blockSize);
+void cbc_decrypt(int* buffer, int blockSize);
+void OcallRB(int index, int* buffer, int blockSize, int structureId);
+void OcallReadBlock(int startIdx, int offset, int* buffer, int blockSize, int structureId);
+void OcallWB(int index, int offset, int* buffer, int blockSize, int structureId);
+void OcallWriteBlock(int startIdx, int offset, int* buffer, int blockSize, int structureId);
+void freeAllocate(int structureIdM, int structureIdF, int size);
 int myrand();
-int64_t Hypergeometric(int64_t NN, int64_t Msize, int64_t n_prime);
-void shuffle(int64_t *array, int64_t n);
+int Hypergeometric(int NN, int Msize, int n_prime);
+void shuffle(int *array, int n);
 // void padWithDummy(int structureId, int start, int realNum, int secSize);
-int64_t moveDummy(int64_t *a, int64_t size);
-void swapRow(int64_t *a, int64_t *b);
-bool cmpHelper(int64_t *a, int64_t *b);
+int moveDummy(int *a, int size);
+void swapRow(int *a, int *b);
+bool cmpHelper(int *a, int *b);
 bool cmpHelper(Bucket_x *a, Bucket_x *b);
-int64_t partition(int64_t *arr, int64_t low, int64_t high);
-void quickSort(int64_t *arr, int64_t low, int64_t high);
-int64_t partition(Bucket_x *arr, int64_t low, int64_t high);
-void quickSort(Bucket_x *arr, int64_t low, int64_t high);
-int64_t greatestPowerOfTwoLessThan(double n);
-int64_t smallestPowerOfKLargerThan(int64_t n, int64_t k);
-void print(int64_t* array, int64_t size);
-void print(int64_t **arrayAddr, int structureId, int64_t size);
-void test(int64_t **arrayAddr, int structureId, int64_t size);
-void testWithDummy(int64_t **arrayAddr, int structureId, int64_t size);
+int partition(int *arr, int low, int high);
+void quickSort(int *arr, int low, int high);
+int partition(Bucket_x *arr, int low, int high);
+void quickSort(Bucket_x *arr, int low, int high);
+int greatestPowerOfTwoLessThan(double n);
+int smallestPowerOfKLargerThan(int n, int k);
+void print(int* array, int size);
+void printEnc(int **arrayAddr, int structureId, int size);
+void print(int **arrayAddr, int structureId, int size);
+void test(int **arrayAddr, int structureId, int size);
+void testWithDummy(int **arrayAddr, int structureId, int size);
 
 #endif // !COMMON_H
