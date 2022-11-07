@@ -124,7 +124,9 @@ void kWayMergeSort(int inputStructureId, int outputStructureId, int* numRow1, in
     temp->elemIdx ++;
     
     if (writeBufferCounter == writeBufferSize) {
+      nonEnc = 1;
       opOneLinearScanBlock(writeBucketAddr, (int*)writeBuffer, writeBufferSize, outputStructureId, 1, 0);
+      nonEnc = 0; 
       writeBucketAddr += writeBufferSize;
       // numRow2[temp->bucketIdx] += writeBufferSize;
       writeBufferCounter = 0;
@@ -146,7 +148,9 @@ void kWayMergeSort(int inputStructureId, int outputStructureId, int* numRow1, in
       heap.Heapify(0);
     }
   }
+  nonEnc = 1;
   opOneLinearScanBlock(writeBucketAddr, (int*)writeBuffer, writeBufferCounter, outputStructureId, 1, 0);
+  nonEnc = 0;
   // numRow2[0] += writeBufferCounter;
   // TODO: ERROR writeBuffer
   free(writeBuffer);
@@ -181,7 +185,7 @@ int bucketOSort(int structureId, int size) {
   }
   // TODO: Change to ceil, not interger divide
   int ranBinAssignIters = ceil(1.0*log2(bucketNum)/log2(k));
-  printf("Iteration times: %d", (int)ceil(1.0*log2(bucketNum)/log2(k)));
+  printf("Iteration times: %d\n", (int)ceil(1.0*log2(bucketNum)/log2(k)));
   srand((unsigned)time(NULL));
   // std::cout << "Iters:" << ranBinAssignIters << std::endl;
   int *bucketAddr = (int*)malloc(bucketNum * sizeof(int));
@@ -200,10 +204,12 @@ int bucketOSort(int structureId, int size) {
   int avg = size / bucketNum;
   int remainder = size % bucketNum;
   std::uniform_int_distribution<int> dist{0, bucketNum-1};
-
+  aes_init();
+  std::cout << "Before initial\n";
   for (int i = 0; i < bucketNum; ++i) {
     each = avg + ((i < remainder) ? 1 : 0);
     nonEnc = 1;
+    // std::cout << "Read initial\n";
     opOneLinearScanBlock(readStart, inputTrustMemory, each, structureId - 1, 0, 0);
     readStart += each;
     int randomKey;
@@ -215,12 +221,13 @@ int bucketOSort(int structureId, int size) {
       trustedMemory[j].key = randomKey;
     }
     nonEnc = 0;
+    // printf("Write initial %d\n", trustedMemory[0].x);
     opOneLinearScanBlock(bucketAddr[i], (int*)trustedMemory, each, structureId, 1, BUCKET_SIZE-each);
     numRow1[i] += each;
   }
-
   free(trustedMemory);
   free(inputTrustMemory);
+  std::cout << "After initial\n";
   nonEnc = 0;
   int *inputId = (int*)malloc(k * sizeof(int));
   int *outputId = (int*)malloc(k *sizeof(int));
@@ -259,7 +266,6 @@ int bucketOSort(int structureId, int size) {
           for (int m = 0; m < tempk; ++m) {
             printf("output%d: %d\n", m, outputId[m]);
           }*/
-          printf("Before mergeSplit\n");
           mergeSplit(structureId, structureId + 1, inputId, outputId, tempk, bucketAddr, numRow1, numRow2, i);
           outIdx ++;
         }
@@ -291,7 +297,6 @@ int bucketOSort(int structureId, int size) {
           for (int m = 0; m < tempk; ++m) {
             printf("output%d: %d\n", m, outputId[m]);
           }*/
-          printf("Before mergeSplit\n");
           mergeSplit(structureId + 1, structureId, inputId, outputId, tempk, bucketAddr, numRow2, numRow1, i);
           outIdx ++;
         }

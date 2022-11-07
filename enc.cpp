@@ -98,27 +98,28 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
     std::cout << "In testing: \n";
     aes_init();
     // 0, 3, 4: int , 1, 2: bucket
-    freeAllocate(0, 0, ceil(1.0*N/4)); 
-    freeAllocate(3, 3, ceil(1.0*N/4));
-    // freeAllocate(1, 1, ceil(1.0*N/2));
-    initEnc(arrayAddr, 0, N);
-    // initEnc(arrayAddr, 1, N);
-    int *read = (int*)malloc(N*sizeof(int));
-    // int *read = (int*)malloc(N*sizeof(Bucket_x));
+    // freeAllocate(0, 0, ceil(1.0*N/4)); 
+    // freeAllocate(3, 3, ceil(1.0*N/4));
+    freeAllocate(1, 1, ceil(1.0*N/2));
+    freeAllocate(2, 2, ceil(1.0*N/2));
+    // initEnc(arrayAddr, 0, N);
+    initEnc(arrayAddr, 1, N); 
+    // int *read = (int*)malloc(N*sizeof(int));
+    int *read = (int*)malloc(N*sizeof(Bucket_x));
     nonEnc = 1;
-    opOneLinearScanBlock(0, read, N, 0, 0, 0);
+    opOneLinearScanBlock(0, read, N, 1, 0, 0);
     std::cout << "After Read in nonEnc\n";
     nonEnc = 0;
     // write & Enc
-    opOneLinearScanBlock(0, read, N, 3, 1, 0);
+    opOneLinearScanBlock(0, read, N, 2, 1, 0);
     std::cout << "Encrypt write out: \n";
     // read & decrypt
-    opOneLinearScanBlock(0, read, N, 3, 0, 0);
+    opOneLinearScanBlock(0, read, N, 2, 0, 0);
     std::cout << "After Read in Enc\n";
-    print(read, N);
+    print(read, 2*N);
     nonEnc = 1;
-    opOneLinearScanBlock(0, read, N, 3, 1, 0);
-    printEnc(arrayAddr, 3, N);
+    opOneLinearScanBlock(0, read, N, 1, 1, 0);
+    printEnc(arrayAddr, 1, N);
   }
 }
 
@@ -135,7 +136,7 @@ int main(int argc, const char* argv[]) {
   // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
 
   // 0: OQSORT-Tight, 1: OQSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort(x)
-  int sortId = 5;
+  int sortId = 2;
   int inputId = 0;
 
   // double beta = calParams();
@@ -183,7 +184,7 @@ int main(int argc, const char* argv[]) {
     freeAllocate(1, 1, ceil(1.0*bucketSize/2));
     freeAllocate(2, 2, ceil(1.0*bucketSize/2));
     std::cout << "After bucket malloc\n";
-    freeAllocate(inputId, inputId, ceil(1.0*N/2));
+    freeAllocate(inputId, inputId, ceil(1.0*N/4));
     paddedSize = N;
     // TODO: 
     initEnc(arrayAddr, inputId, paddedSize);
@@ -215,7 +216,7 @@ int main(int argc, const char* argv[]) {
     std::cout << "Result ID: " << *resId << std::endl;
     *resN = N;
     // print(arrayAddr, *resId, N);
-    test(arrayAddr, *resId, paddedSize);
+    testEnc(arrayAddr, *resId, paddedSize);
   } else if (sortId == 0 || sortId == 1) {
     std::cout << "Test OQSort... " << std::endl;
     callSort(sortId, inputId, paddedSize, resId, resN);
@@ -223,11 +224,11 @@ int main(int argc, const char* argv[]) {
     if (*resId == -1) {
       std::cout << "TEST Failed\n";
     } else if (sortId == 0) {
-      test(arrayAddr, *resId, paddedSize);
+      // test(arrayAddr, *resId, paddedSize);
       *resN = N;
     } else if (sortId == 1) {
       // Sample Loose has different test & print
-      testWithDummy(arrayAddr, *resId, *resN);
+      // testWithDummy(arrayAddr, *resId, *resN);
     }
   } else {
     callSort(sortId, inputId, paddedSize, resId, resN);
@@ -237,8 +238,9 @@ int main(int argc, const char* argv[]) {
   duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "Finished. Duration Time: " << duration.count() << " seconds" << std::endl;
   // std::cout.precision(4);
-  printf("IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/2));
-  print(arrayAddr, *resId, *resN);
+  int multi = (sortId == 2 || sortId == 4) ? 2 : 1;
+  printf("IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/multi));
+  printEnc(arrayAddr, *resId, *resN);
   // step5: exix part
   exit:
     for (int i = 0; i < NUM_STRUCTURES; ++i) {

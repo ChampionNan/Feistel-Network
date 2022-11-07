@@ -177,7 +177,6 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
   int multi = structureSize[outStructureId1]/sizeof(int);
   int totalEncB = ceil(1.0 * boundary1 * smallSectionSize * p0 / (BLOCK_DATA_SIZE / multi));
   freeAllocate(outStructureId1, outStructureId1, totalEncB);
-  
   int Msize1, Msize2, index1, index2, writeBackNum;
   int total_blocks = ceil(1.0 * inSize / BLOCK_DATA_SIZE);
   int *trustedM3 = (int*)malloc(sizeof(int) * boundary2 * BLOCK_DATA_SIZE);
@@ -238,6 +237,7 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
 int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int outStructureId2) {
   int *trustedM;
   printf("In ObliviousTightSort\n");
+  aes_init();
   if (inSize <= M) {
     trustedM = (int*)malloc(sizeof(int) * M);
     nonEnc = 1;
@@ -265,11 +265,12 @@ int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int o
   trustedM = (int*)malloc(sizeof(int) * M);
   int j = 0, k;
   printf("In final\n");
-  nonEnc = 0;
   for (int i = 0; i < sectionNum; ++i) {
+    nonEnc = 0;
     opOneLinearScanBlock(i * sectionSize, trustedM, sectionSize, outStructureId1, 0, 0);
     k = moveDummy(trustedM, sectionSize);
     quickSort(trustedM, 0, k-1);
+    nonEnc = 1;
     opOneLinearScanBlock(j, trustedM, k, outStructureId2, 1, 0);
     j += k;
   }
@@ -281,6 +282,7 @@ int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int o
 std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStructureId1, int outStructureId2) {
   printf("In ObliviousLooseSort\n");
   int *trustedM;
+  aes_init();
   if (inSize <= M) {
     trustedM = (int*)malloc(sizeof(int) * M);
     nonEnc = 1;
@@ -304,11 +306,12 @@ std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStr
   int totalEncB = ceil(1.0 * totalLevelSize / (BLOCK_DATA_SIZE / multi)); 
   freeAllocate(outStructureId2, outStructureId2, totalEncB);
   trustedM = (int*)malloc(sizeof(int) * M);
-  nonEnc = 1;
   for (int i = 0; i < sectionNum; ++i) {
+    nonEnc = 0;
     opOneLinearScanBlock(i * sectionSize, trustedM, sectionSize, outStructureId1, 0, 0);
     k = moveDummy(trustedM, sectionSize);
     quickSort(trustedM, 0, k - 1);
+    nonEnc = 1;
     opOneLinearScanBlock(i * sectionSize, trustedM, sectionSize, outStructureId2, 1, 0);
   }
   // printf("Till Final IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);

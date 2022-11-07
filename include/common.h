@@ -25,8 +25,8 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 8// 83886080// 2147483648L// 536870912// 1073741824
-#define M 1000// 4194304 // 16777216 // 2097152
+#define N 8388608// 83886080// 2147483648L// 536870912// 1073741824
+#define M 1048576// 4194304 // 16777216 // 2097152
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
@@ -37,9 +37,9 @@
 #define _ALPHA -1
 #define _BETA -1
 #define _P -1
-#define ALPHA 0.0161416823830321
-#define BETA 0.0575360376415013
-#define P 36
+#define ALPHA 0.0667171327362616
+#define BETA 0.0547125516619621
+#define P 9
 #define KAPPA 27.8
 
 extern int is_tight;
@@ -112,6 +112,7 @@ void print(int* array, int size);
 void printEnc(int **arrayAddr, int structureId, int size);
 void print(int **arrayAddr, int structureId, int size);
 void test(int **arrayAddr, int structureId, int size);
+void testEnc(int **arrayAddr, int structureId, int size);
 void testWithDummy(int **arrayAddr, int structureId, int size);
 
 #endif // !COMMON_H

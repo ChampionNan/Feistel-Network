@@ -102,91 +102,91 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named enc
+# Target rules for targets named oq
 
 # Build rule for target.
-enc: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 enc
-.PHONY : enc
+oq: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 oq
+.PHONY : oq
 
 # fast build rule for target.
-enc/fast:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/build
-.PHONY : enc/fast
+oq/fast:
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/build
+.PHONY : oq/fast
 
 # target to build an object file
 enc.o:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/enc.o
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/enc.o
 .PHONY : enc.o
 
 # target to preprocess a source file
 enc.i:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/enc.i
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/enc.i
 .PHONY : enc.i
 
 # target to generate assembly for a file
 enc.s:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/enc.s
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/enc.s
 .PHONY : enc.s
 
 # target to build an object file
 include/bucket.o:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/bucket.o
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bucket.o
 .PHONY : include/bucket.o
 
 # target to preprocess a source file
 include/bucket.i:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/bucket.i
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bucket.i
 .PHONY : include/bucket.i
 
 # target to generate assembly for a file
 include/bucket.s:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/bucket.s
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bucket.s
 .PHONY : include/bucket.s
 
 # target to build an object file
 include/common.o:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/common.o
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/common.o
 .PHONY : include/common.o
 
 # target to preprocess a source file
 include/common.i:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/common.i
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/common.i
 .PHONY : include/common.i
 
 # target to generate assembly for a file
 include/common.s:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/common.s
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/common.s
 .PHONY : include/common.s
 
 # target to build an object file
 include/merge.o:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/merge.o
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/merge.o
 .PHONY : include/merge.o
 
 # target to preprocess a source file
 include/merge.i:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/merge.i
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/merge.i
 .PHONY : include/merge.i
 
 # target to generate assembly for a file
 include/merge.s:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/merge.s
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/merge.s
 .PHONY : include/merge.s
 
 # target to build an object file
 include/oq.o:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/oq.o
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/oq.o
 .PHONY : include/oq.o
 
 # target to preprocess a source file
 include/oq.i:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/oq.i
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/oq.i
 .PHONY : include/oq.i
 
 # target to generate assembly for a file
 include/oq.s:
-	$(MAKE) -f CMakeFiles/enc.dir/build.make CMakeFiles/enc.dir/include/oq.s
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/oq.s
 .PHONY : include/oq.s
 
 # Help Target
@@ -196,7 +196,7 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
-	@echo "... enc"
+	@echo "... oq"
 	@echo "... rebuild_cache"
 	@echo "... enc.o"
 	@echo "... enc.i"
