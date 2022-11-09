@@ -74,7 +74,6 @@ void initEnc(int **arrayAddr, int structureId, int size) {
     }
   }
 }
-
 // trusted function
 void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN) {
   // TODO: Utilize Memory alloction -- structureId
@@ -116,7 +115,7 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
     // read & decrypt
     opOneLinearScanBlock(0, read, N, 2, 0, 0);
     std::cout << "After Read in Enc\n";
-    print(read, 2*N);
+    // print(read, N);
     nonEnc = 1;
     opOneLinearScanBlock(0, read, N, 1, 1, 0);
     printEnc(arrayAddr, 1, N);
@@ -239,7 +238,7 @@ int main(int argc, const char* argv[]) {
   std::cout << "Finished. Duration Time: " << duration.count() << " seconds" << std::endl;
   // std::cout.precision(4);
   int multi = (sortId == 2 || sortId == 4) ? 2 : 1;
-  printf("IOcost: %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/multi));
+  printf("IOcost: %f, %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/multi), IOcost);
   printEnc(arrayAddr, *resId, *resN);
   // step5: exix part
   exit:

@@ -6,7 +6,7 @@ unsigned char key2[16];
 mbedtls_aes_context aes2;
 mbedtls_ctr_drbg_context ctr_drbg;
 mbedtls_entropy_context entropy;
-
+size_t iv_offset, iv_offset1;
 
 Heap::Heap(HeapNode *a, int size, int bsize) {
   heapSize = size;
@@ -74,6 +74,28 @@ void Heap::replaceRoot(HeapNode x) {
   harr[0] = x;
   Heapify(0);
 }
+
+// support int version only
+void fyShuffle(int structureId, int size, int B) {
+  if (size % B != 0) {
+    printf("Error! Not 4 times.\n");
+  }
+  int total_blocks = size / B;
+  EncBlock *trustedM3 = (EncBlock*)malloc(sizeof(EncBlock));
+  int k;
+  std::random_device dev;
+  std::mt19937 rng(dev()); 
+  // switch block i & block k
+  for (int i = total_blocks-1; i >= 0; i--) {
+    std::uniform_int_distribution<int> dist(0, i);
+    k = dist(rng);
+    memcpy(trustedM3, (EncBlock*)(arrayAddr[structureId]) + k, sizeof(EncBlock));
+    memcpy((EncBlock*)(arrayAddr[structureId]) + k, (EncBlock*)(arrayAddr[structureId]) + i, sizeof(EncBlock));
+    memcpy((EncBlock*)(arrayAddr[structureId]) + i, trustedM3, sizeof(EncBlock));
+  }
+  std::cout << "Finished floyd shuffle\n";
+}
+
 /* OCall functions */
 void ocall_print_string(const char *str) {
   /* Proxy/Bridge will check the length and null-terminate
@@ -107,8 +129,9 @@ void cbc_encrypt(EncBlock* buffer, int blockSize) {
   mbedtls_ctr_drbg_random(&ctr_drbg, (uint8_t*)(&(buffer->iv)), 16);
   // // std::cout<< "memcpy iv\n";
   unsigned char iv[16];
+  iv_offset = 0;
   memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
-  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_ENCRYPT, blockSize, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
+  mbedtls_aes_crypt_ofb(&aes2, blockSize, &iv_offset, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
   memcpy((uint8_t*)(&(buffer->iv)), iv, blockSize);
   return;
 }
@@ -116,12 +139,9 @@ void cbc_encrypt(EncBlock* buffer, int blockSize) {
 // Assume blockSize = 16 * k
 void cbc_decrypt(EncBlock* buffer, int blockSize) {
   // std::cout<< "In cbc_decrypt\n";
-  // unsigned char iv[16];
-  // memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
-  mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
-  // memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
-  // int *a = (int*)buffer;
-  // printf("%d, %d, %d, %d\n", a[0], a[1], a[2], a[3]);
+  // mbedtls_aes_crypt_cfb8(&aes2, MBEDTLS_AES_DECRYPT, blockSize, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
+  iv_offset1 = 0;
+  mbedtls_aes_crypt_ofb(&aes2, blockSize, &iv_offset1, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
   return;
 }
 
@@ -477,14 +497,19 @@ void printEnc(int **arrayAddr, int structureId, int size) {
   std::ofstream fout("/home/data/bchenba/res.txt");
   EncBlock *addr = (EncBlock*)arrayAddr[structureId];
   if(structureSize[structureId] == 4) {
+    std::cout << "In printEnc\n";
     blockNumber = (int)ceil(1.0*size/4);
     for (i = 0; i < blockNumber; i++) {
       int *addx = (int*)(&(addr[i]));
+      // fout << "i: " << i << std::endl;
+      // std::cout << "i: " << i << std::endl;
       for (j = 0; j < 4; ++j) {
         fout << addx[j] << ' ';
+        // std::cout << addx[j] << ' ';
       }
       if (i % 5 == 0) {
         fout << std::endl;
+        // std::cout << std::endl;
       }
     }
   } else if (structureSize[structureId] == 8) {

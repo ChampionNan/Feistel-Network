@@ -25,8 +25,8 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 8388608// 83886080// 2147483648L// 536870912// 1073741824
-#define M 1048576// 4194304 // 16777216 // 2097152
+#define N 167772160// 83886080// 2147483648L// 536870912// 1073741824
+#define M 8388608// 4194304 // 16777216 // 2097152
 #define BLOCK_DATA_SIZE 4
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
@@ -37,9 +37,9 @@
 #define _ALPHA -1
 #define _BETA -1
 #define _P -1
-#define ALPHA 0.0667171327362616
-#define BETA 0.0547125516619621
-#define P 9
+#define ALPHA 0.0302070506959582
+#define BETA 0.0286274342516871
+#define P 22
 #define KAPPA 27.8
 
 extern int is_tight;
@@ -83,6 +83,7 @@ public:
   void replaceRoot(HeapNode x);
 };
 
+void fyShuffle(int structureId, int size, int B);
 void opOneLinearScanBlock(int index, int* block, int blockSize, int structureId, int write, int dummyNum);
 void ocall_print_string(const char *str);
 void aes_init();

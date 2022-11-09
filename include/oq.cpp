@@ -156,7 +156,7 @@ void quickSortMulti(int *arr, int low, int high, std::vector<int> pivots, int le
     quickSortMulti(arr, mid+1, high, pivots, pivotIdx+1, right, partitionIdx);
   }
 }
-
+/*
 std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector<int> &samples, int sampleSize, int p, int outStructureId1, int is_rec) {
   if (inSize <= M) {
     return {inSize, 1};
@@ -232,6 +232,68 @@ std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector
     printf("Each section size is greater than M, adjst parameters: %ld, %ld", bucketSize0, M);
   }
   return {bucketSize0, p0};
+}*/
+std::pair<int, int> OneLevelPartition(int inStructureId, int inSize, std::vector<int> &samples, int sampleSize, int p, int outStructureId1, int is_rec) {
+  if (inSize <= M) {
+    return {inSize, 1};
+  }
+  printf("In OneLevelPartition\n");
+  // double beta = (!is_rec) ? BETA : _BETA;
+  double beta = BETA;
+  int hatN = ceil(1.0 * (1 + 2 * beta) * inSize);
+  int M_prime = ceil(1.0 * M / (1 + 2 * beta));
+  int r = ceil(1.0 * log(hatN / M) / log(p));
+  int p0 = ceil(1.0 * hatN / (M * pow(p, r - 1)));
+  quantileCal(samples, 0, sampleSize, p0);
+  int boundary1 = ceil(1.0 * inSize / M_prime);
+  int boundary2 = ceil(1.0 * M_prime / BLOCK_DATA_SIZE);
+  int dataBoundary = boundary2 * BLOCK_DATA_SIZE;
+  int smallSectionSize = M / p0;
+  int bucketSize0 = boundary1 * smallSectionSize;
+  int multi = structureSize[outStructureId1]/sizeof(int);
+  int totalEncB = ceil(1.0 * boundary1 * smallSectionSize * p0 / (BLOCK_DATA_SIZE / multi));
+  freeAllocate(outStructureId1, outStructureId1, totalEncB);
+  
+  int Msize1, Msize2, index1, index2, writeBackNum;
+  int total_blocks = ceil(1.0 * inSize / BLOCK_DATA_SIZE);
+  int *trustedM3 = (int*)malloc(sizeof(int) * boundary2 * BLOCK_DATA_SIZE);
+  memset(trustedM3, DUMMY, sizeof(int) * boundary2 * BLOCK_DATA_SIZE);
+  std::vector<int> partitionIdx;
+  // OCall
+  fyShuffle(inStructureId, inSize, BLOCK_DATA_SIZE);
+  // Finish FFSEM implementation in c++
+  // pseudo_init(total_blocks);
+  // printf("Before partition\n");
+  for (int i = 0; i < boundary1; ++i) {
+    // Read one M' memory block after fisher-yates shuffle
+    printf("OneLevel %d/%d\n", i, boundary1);
+    Msize1 = std::min(boundary2 * BLOCK_DATA_SIZE, inSize - i * boundary2 * BLOCK_DATA_SIZE);
+    nonEnc = 1;
+    opOneLinearScanBlock(i * boundary2 * BLOCK_DATA_SIZE, trustedM3, Msize1, inStructureId, 0, 0);
+
+    int blockNum = moveDummy(trustedM3, dataBoundary);
+    quickSortMulti(trustedM3, 0, blockNum-1, samples, 1, p0, partitionIdx);
+    sort(partitionIdx.begin(), partitionIdx.end());
+    partitionIdx.insert(partitionIdx.begin(), -1);
+    for (int j = 0; j < p0; ++j) {
+      index1 = partitionIdx[j]+1;
+      index2 = partitionIdx[j+1];
+      writeBackNum = index2 - index1 + 1;
+      if (writeBackNum > smallSectionSize) {
+        printf("Overflow in small section M/p0: %d > %d\n", writeBackNum, smallSectionSize);
+      }
+      nonEnc = 0;
+      opOneLinearScanBlock(j * bucketSize0 + i * smallSectionSize, &trustedM3[index1], writeBackNum, outStructureId1, 1, smallSectionSize - writeBackNum);
+    }
+    memset(trustedM3, DUMMY, sizeof(int) * boundary2 * BLOCK_DATA_SIZE);
+    partitionIdx.clear();
+  }
+  free(trustedM3);
+  // mbedtls_aes_free(&aes);
+  if (bucketSize0 > M) {
+    printf("Each section size is greater than M, adjst parameters: %d, %d", bucketSize0, M);
+  }
+  return {bucketSize0, p0};
 }
 
 int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int outStructureId2) {
@@ -256,6 +318,7 @@ int ObliviousTightSort(int inStructureId, int inSize, int outStructureId1, int o
   // printf("Till Sample IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
   std::pair<int, int> section= OneLevelPartition(inStructureId, inSize, trustedM2, realNum, P, outStructureId1, 0);
   // printf("Till Partition IOcost: %f\n", 1.0*IOcost/N*BLOCK_DATA_SIZE);
+  printf("After onelevel\n");
   int sectionSize = section.first;
   int sectionNum = section.second;
   // TODO: IN order to reduce memory, can replace outStructureId2 with inStructureId
@@ -306,6 +369,7 @@ std::pair<int, int> ObliviousLooseSort(int inStructureId, int inSize, int outStr
   int totalEncB = ceil(1.0 * totalLevelSize / (BLOCK_DATA_SIZE / multi)); 
   freeAllocate(outStructureId2, outStructureId2, totalEncB);
   trustedM = (int*)malloc(sizeof(int) * M);
+  printf("In final\n");
   for (int i = 0; i < sectionNum; ++i) {
     nonEnc = 0;
     opOneLinearScanBlock(i * sectionSize, trustedM, sectionSize, outStructureId1, 0, 0);
