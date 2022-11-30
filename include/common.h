@@ -25,9 +25,10 @@
 #include <unordered_map>
 #include <bitset>
 
-#define N 167772160// 83886080// 2147483648L// 536870912// 1073741824
-#define M 8388608// 4194304 // 16777216 // 2097152
-#define BLOCK_DATA_SIZE 4
+#define N 8000// 83886080// 2147483648L// 536870912// 1073741824
+#define M 1000// 4194304 // 16777216 // 2097152
+#define PAGEBYTES 10
+#define BLOCK_DATA_SIZE 6
 #define NUM_STRUCTURES 10
 // #define MEM_IN_ENCLAVE 5
 #define DUMMY -1
@@ -53,7 +54,7 @@ typedef struct {
 } Bucket_x;
 
 typedef struct {
-  __uint128_t x;
+  uint32_t x[BLOCK_DATA_SIZE];
   __uint128_t iv;
 } EncBlock;
 

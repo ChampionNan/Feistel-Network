@@ -32,7 +32,7 @@ Bucket_x *bucketx2;
 
 int *arrayAddr[NUM_STRUCTURES];
 int paddedSize;
-double IOcost = 0;
+double IOcost;
 int is_tight;
 
 /** procedure test() : verify sort results **/
@@ -57,23 +57,47 @@ void initEnc(int **arrayAddr, int structureId, int size) {
   int i = 0, j, blockNumber;
   EncBlock *addr = (EncBlock*)arrayAddr[structureId];
   if (structureSize[structureId] == 4) {
-    blockNumber = (int)ceil(1.0*size/4);
+    blockNumber = (int)ceil(1.0*size/BLOCK_DATA_SIZE);
     for (i = 0; i < blockNumber; i++) {
       int *addx = (int*)(&addr[i]);
-      for (j = 0; j < 4; ++j) {
-        addx[j] = size - (i * 4 + j);
+      for (j = 0; j < BLOCK_DATA_SIZE; ++j) {
+        addx[j] = size - (i * BLOCK_DATA_SIZE + j);
       }
     }
   } else if (structureSize[structureId] == 8) {
-    blockNumber = (int)ceil(1.0*size/2); 
+    blockNumber = (int)ceil(1.0*size/BLOCK_DATA_SIZE/2); 
     for (i = 0; i < blockNumber; ++i) {
       Bucket_x *addx = (Bucket_x*)(&addr[i]);
-      for (j = 0; j < 2; ++j) {
-        addx[j].x = size - (i * 2 + j);
+      for (j = 0; j < BLOCK_DATA_SIZE/2; ++j) {
+        addx[j].x = size - (i * BLOCK_DATA_SIZE/2 + j);
       }
     }
   }
 }
+
+void testIO(int IOnum, int inId) {
+  int totalB = ceil(IOnum / 2);
+  printf("Testing IO: %d\n", IOnum);
+  aes_init();
+  int *buffer = (int*)malloc(PAGEBYTES);
+  int pageNum = PAGEBYTES / 4;
+  freeAllocate(inId, inId, totalB*PAGEBYTES/4);
+  // std::random_device dev;
+  // std::mt19937 rng(dev());
+  // std::uniform_int_distribution<int> dist{0, totalB-1};
+  int index;
+  nonEnc = 0;
+  for (int i = 0; i < totalB; ++i) {
+    // index = dist(rng);
+    opOneLinearScanBlock(i*pageNum, buffer, PAGEBYTES/8, inId, 0, 0);
+  }
+  for (int i = 0; i < totalB; ++i) {
+    // index = dist(rng);
+    opOneLinearScanBlock(i*pageNum, buffer, PAGEBYTES/8, inId, 1, 0);
+  }
+  free(buffer);
+}
+
 // trusted function
 void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN) {
   // TODO: Utilize Memory alloction -- structureId
@@ -93,32 +117,43 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
     *resId = bucketOSort(structureId, paddedSize);
   } else if (sortId == 4) {
     *resId = merge_sort(structureId, structureId+1);
+  } else if (sortId == 5){
+    testIO(2, structureId);
   } else {
     std::cout << "In testing: \n";
     aes_init();
     // 0, 3, 4: int , 1, 2: bucket
-    // freeAllocate(0, 0, ceil(1.0*N/4)); 
-    // freeAllocate(3, 3, ceil(1.0*N/4));
-    freeAllocate(1, 1, ceil(1.0*N/2));
-    freeAllocate(2, 2, ceil(1.0*N/2));
-    // initEnc(arrayAddr, 0, N);
-    initEnc(arrayAddr, 1, N); 
-    // int *read = (int*)malloc(N*sizeof(int));
-    int *read = (int*)malloc(N*sizeof(Bucket_x));
+    freeAllocate(0, 0, ceil(1.0*N/BLOCK_DATA_SIZE)); 
+    freeAllocate(3, 3, ceil(1.0*N/BLOCK_DATA_SIZE));
+    // freeAllocate(1, 1, ceil(1.0*N/2));
+    // freeAllocate(2, 2, ceil(1.0*N/2));
+    initEnc(arrayAddr, 0, N);
+    // initEnc(arrayAddr, 1, N); 
+    printf("Initial\n");
+    printEnc(arrayAddr, 0, N);
+    int *read = (int*)malloc(N*sizeof(int));
+    // int *read = (int*)malloc(N*sizeof(Bucket_x));
     nonEnc = 1;
-    opOneLinearScanBlock(0, read, N, 1, 0, 0);
+    opOneLinearScanBlock(0, read, N, 0, 0, 0);
     std::cout << "After Read in nonEnc\n";
+    print(read,N); // pass
     nonEnc = 0;
+    printf("Before write Enc\n");
     // write & Enc
-    opOneLinearScanBlock(0, read, N, 2, 1, 0);
-    std::cout << "Encrypt write out: \n";
+    opOneLinearScanBlock(0, read, N, 3, 1, 0);
+    std::cout << "After write in Enc\n";
+    printEnc(arrayAddr, 3, N);
     // read & decrypt
-    opOneLinearScanBlock(0, read, N, 2, 0, 0);
+    opOneLinearScanBlock(0, read, N, 3, 0, 0);
     std::cout << "After Read in Enc\n";
-    // print(read, N);
+    print(read, N);
     nonEnc = 1;
-    opOneLinearScanBlock(0, read, N, 1, 1, 0);
-    printEnc(arrayAddr, 1, N);
+    opOneLinearScanBlock(0, read, N, 0, 1, 0);
+    std::cout << "After write in Enc2\n";
+    printEnc(arrayAddr, 0, N);
+    opOneLinearScanBlock(0, read, N, 0, 0, 0);
+    std::cout << "After Read in Enc2\n";
+    print(read, N);
   }
 }
 
@@ -132,6 +167,7 @@ int main(int argc, const char* argv[]) {
   std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::seconds duration;
   srand((unsigned)time(NULL));
+  IOcost = 0;
   // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
 
   // 0: OQSORT-Tight, 1: OQSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort(x)

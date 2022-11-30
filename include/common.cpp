@@ -93,7 +93,7 @@ void fyShuffle(int structureId, int size, int B) {
     memcpy((EncBlock*)(arrayAddr[structureId]) + k, (EncBlock*)(arrayAddr[structureId]) + i, sizeof(EncBlock));
     memcpy((EncBlock*)(arrayAddr[structureId]) + i, trustedM3, sizeof(EncBlock));
   }
-  std::cout << "Finished floyd shuffle\n";
+  // std::cout << "Finished floyd shuffle\n";
 }
 
 /* OCall functions */
@@ -127,12 +127,12 @@ void aes_init() {
 void cbc_encrypt(EncBlock* buffer, int blockSize) {
   // std::cout<< "In cbc_encrypt\n";
   mbedtls_ctr_drbg_random(&ctr_drbg, (uint8_t*)(&(buffer->iv)), 16);
-  // // std::cout<< "memcpy iv\n";
+  // // // std::cout<< "memcpy iv\n";
   unsigned char iv[16];
   iv_offset = 0;
-  memcpy(iv, (uint8_t*)(&(buffer->iv)), blockSize);
+  memcpy(iv, (uint8_t*)(&(buffer->iv)), 16);
   mbedtls_aes_crypt_ofb(&aes2, blockSize, &iv_offset, (uint8_t*)(&(buffer->iv)), (uint8_t*)buffer, (uint8_t*)buffer);
-  memcpy((uint8_t*)(&(buffer->iv)), iv, blockSize);
+  memcpy((uint8_t*)(&(buffer->iv)), iv, 16);
   return;
 }
 
@@ -157,7 +157,7 @@ void OcallReadBlock(int startIdx, int offset, int* buffer, int blockSize, int st
   if (blockSize == 0) {
     return;
   }
-  // // std::cout<< "In OcallReadBlock\n";
+  // std::cout<< "In OcallReadBlock\n";
   EncBlock *readBuffer = (EncBlock*)malloc(sizeof(EncBlock));
   if (nonEnc) {
     OcallRB(startIdx, (int*)readBuffer, sizeof(EncBlock), structureId);
@@ -165,7 +165,7 @@ void OcallReadBlock(int startIdx, int offset, int* buffer, int blockSize, int st
     memcpy(buffer, (int*)readBuffer+offset*(structureSize[structureId]/sizeof(int)), blockSize);
   } else {
     OcallRB(startIdx, (int*)readBuffer, sizeof(EncBlock), structureId);
-    cbc_decrypt(readBuffer, sizeof(EncBlock)/2);
+    cbc_decrypt(readBuffer, sizeof(int)*BLOCK_DATA_SIZE);
     memcpy(buffer, (int*)readBuffer+offset*(structureSize[structureId]/sizeof(int)), blockSize);
   }
   free(readBuffer);
@@ -191,14 +191,14 @@ void OcallWriteBlock(int startIdx, int offset, int* buffer, int blockSize, int s
     if (offset == 0) { // could write the whole block
       // printf("In OcallWriteBlock1\n");
       memcpy((int*)writeBuf, buffer, blockSize);
-      cbc_encrypt(writeBuf, sizeof(EncBlock)/2);
+      cbc_encrypt(writeBuf, sizeof(int)*BLOCK_DATA_SIZE);
       OcallWB(startIdx, 0, (int*)writeBuf, sizeof(EncBlock), structureId);
     } else { // read&decrypt first, later write&encrypt
       // printf("In OcallWriteBlock2\n");
       OcallRB(startIdx, (int*)writeBuf, sizeof(EncBlock), structureId);
-      cbc_decrypt(writeBuf, sizeof(EncBlock)/2);
+      cbc_decrypt(writeBuf, sizeof(int)*BLOCK_DATA_SIZE);
       memcpy((int*)writeBuf+offset*(structureSize[structureId]/sizeof(int)), buffer, blockSize);
-      cbc_encrypt(writeBuf, sizeof(EncBlock)/2);
+      cbc_encrypt(writeBuf, sizeof(int)*BLOCK_DATA_SIZE);
       OcallWB(startIdx, 0, (int*)writeBuf, sizeof(EncBlock), structureId);
     }
   }
@@ -242,7 +242,7 @@ void opOneLinearScanBlock(int index, int* block, int blockSize, int structureId,
   int opStart = 0;
   int Msize, offset = 0;
   if (!write) {
-    // // // std::cout<< "In reading B: \n";
+    // std::cout<< "In reading B: \n";
     for (int i = 0; i < boundary; ++i) {
       if (i != 0 && (i != boundary - 1)) {
         Msize = B;
@@ -495,28 +495,29 @@ void print(int **arrayAddr, int structureId, int size) {
 void printEnc(int **arrayAddr, int structureId, int size) {
   int i, j, blockNumber;
   std::ofstream fout("/home/data/bchenba/res.txt");
+  printf("Print size: %d\n", size);
   EncBlock *addr = (EncBlock*)arrayAddr[structureId];
   if(structureSize[structureId] == 4) {
-    std::cout << "In printEnc\n";
-    blockNumber = (int)ceil(1.0*size/4);
+    // std::cout << "In printEnc\n";
+    blockNumber = (int)ceil(1.0*size/BLOCK_DATA_SIZE);
     for (i = 0; i < blockNumber; i++) {
       int *addx = (int*)(&(addr[i]));
       // fout << "i: " << i << std::endl;
-      // std::cout << "i: " << i << std::endl;
-      for (j = 0; j < 4; ++j) {
+      // // std::cout << "i: " << i << std::endl;
+      for (j = 0; j < BLOCK_DATA_SIZE; ++j) {
         fout << addx[j] << ' ';
-        // std::cout << addx[j] << ' ';
+        std::cout << addx[j] << ' ';
       }
       if (i % 5 == 0) {
         fout << std::endl;
-        // std::cout << std::endl;
+        std::cout << std::endl;
       }
     }
   } else if (structureSize[structureId] == 8) {
-    blockNumber = (int)ceil(1.0*size/2);
+    blockNumber = (int)ceil(1.0*size/(BLOCK_DATA_SIZE/2));
     for (i = 0; i < blockNumber; i++) {
       Bucket_x *addx = (Bucket_x*)(&(addr[i]));
-      for (j = 0; j < 2; ++j) {
+      for (j = 0; j < BLOCK_DATA_SIZE/2; ++j) {
         fout << "(" << addx[j].x << ", " << addx[j].key << ") ";
       }
       if (i % 5 == 0) {
@@ -524,9 +525,9 @@ void printEnc(int **arrayAddr, int structureId, int size) {
       }
     }
   }
-  // printf("\n");
+  printf("\n");
   fout << std::endl;
-  // // // std::cout<< "\nFinished printEnc. \n";
+  // std::cout<< "\nFinished printEnc. \n";
   fout.close();
 }
 
@@ -539,7 +540,7 @@ void test(int **arrayAddr, int structureId, int size) {
     for (i = 1; i < size; i++) {
       pass &= ((arrayAddr[structureId])[i-1] <= (arrayAddr[structureId])[i]);
       if (!pass) {
-        // // std::cout<< (arrayAddr[structureId])[i-1] << ' ' << (arrayAddr[structureId])[i];
+        // // // std::cout<< (arrayAddr[structureId])[i-1] << ' ' << (arrayAddr[structureId])[i];
         break;
       }
     }
@@ -548,7 +549,7 @@ void test(int **arrayAddr, int structureId, int size) {
     for (i = 1; i < size; i++) {
       pass &= (addr[i-1].x <= addr[i].x);
       if (!pass) {
-        // // std::cout<< addr[i-1].x << ' ' << addr[i].x;
+        // // // std::cout<< addr[i-1].x << ' ' << addr[i].x;
         break;
       }
     }
@@ -562,16 +563,16 @@ void testEnc(int **arrayAddr, int structureId, int size) {
   EncBlock *addr = (EncBlock*)arrayAddr[structureId];
   if(structureSize[structureId] == 4) {
     // int type
-    blockNumber = (int)ceil(1.0*size/4);
+    blockNumber = (int)ceil(1.0*size/BLOCK_DATA_SIZE);
     for (i = 0; i < blockNumber; i++) {
       int *addx = (int*)(&(addr[i]));
-      for (j = 0; j < 3; ++j) {
+      for (j = 0; j < BLOCK_DATA_SIZE-1; ++j) {
         pass &= (addx[j] <= addx[j+1]);
       }
     }
   } else {
     // Bucket Type
-    blockNumber = (int)ceil(1.0*size/2);
+    blockNumber = (int)ceil(1.0*size/(BLOCK_DATA_SIZE/2));
     for (i = 0; i < blockNumber; i++) {
       Bucket_x *addx = (Bucket_x*)(&(addr[i]));
       pass &= (addx[0].x <= addx[1].x);
