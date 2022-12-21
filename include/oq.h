@@ -6,9 +6,18 @@
 #include <cstdlib>
 #include <cstdint>
 
+// others
 __uint128_t prf(__uint128_t a);
 int encrypt(int index);
 void pseudo_init(int size);
+int sumArray(bool *M, int left, int right);
+void swapArray(int *D, int i, int j);
+void OROffCompact(int *D, bool *M, int left, int right, int z);
+void ORCompact(int *D, bool *M, int left, int right);
+int assignM(int *arr, bool *M, int left, int right, int pivot);
+void multiLevelPartiton(int *D, bool *M, int low, int high, std::vector<int> pivots,int left, int right, std::vector<int> &partitionIdx);
+void internalObliviousSort(int *D, int left, int right, int smallM, double beta, double gamma);
+// main sorting part
 void floydSampler(int n, int k, std::vector<int> &x);
 int Sample(int inStructureId, int sampleSize, std::vector<int> &trustedM2, int is_tight, int is_rec);
 void SampleRec(int inStructureId, int sampleId, int sortedSampleId, int is_tight, std::vector<std::vector<int> >& pivots);
