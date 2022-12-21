@@ -130,6 +130,21 @@ enc.s:
 .PHONY : enc.s
 
 # target to build an object file
+include/bitonic.o:
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bitonic.o
+.PHONY : include/bitonic.o
+
+# target to preprocess a source file
+include/bitonic.i:
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bitonic.i
+.PHONY : include/bitonic.i
+
+# target to generate assembly for a file
+include/bitonic.s:
+	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bitonic.s
+.PHONY : include/bitonic.s
+
+# target to build an object file
 include/bucket.o:
 	$(MAKE) -f CMakeFiles/oq.dir/build.make CMakeFiles/oq.dir/include/bucket.o
 .PHONY : include/bucket.o
@@ -201,6 +216,9 @@ help:
 	@echo "... enc.o"
 	@echo "... enc.i"
 	@echo "... enc.s"
+	@echo "... include/bitonic.o"
+	@echo "... include/bitonic.i"
+	@echo "... include/bitonic.s"
 	@echo "... include/bucket.o"
 	@echo "... include/bucket.i"
 	@echo "... include/bucket.s"

@@ -22,24 +22,24 @@
 #include "include/oq.h"
 
 // Globals
-int *X;
+int64_t *X;
 //structureId=3, write back array
-int *Y;
+int64_t *Y;
 //structureId=1, bucket1 in bucket sort; input
 Bucket_x *bucketx1;
 //structureId=2, bucket 2 in bucket sort
 Bucket_x *bucketx2;
 
-int *arrayAddr[NUM_STRUCTURES];
-int paddedSize;
+int64_t *arrayAddr[NUM_STRUCTURES];
+int64_t paddedSize;
 double IOcost;
-int is_tight;
+int64_t is_tight;
 
 /** procedure test() : verify sort results **/
-void init(int **arrayAddr, int structureId, int size) {
-  int i;
+void init(int64_t **arrayAddr, int64_t structureId, int64_t size) {
+  int64_t i;
   if (structureSize[structureId] == 4) {
-    int *addr = (int*)arrayAddr[structureId];
+    int64_t *addr = (int64_t*)arrayAddr[structureId];
     for (i = 0; i < size; i++) {
       addr[i] = size - i;
     }
@@ -53,19 +53,19 @@ void init(int **arrayAddr, int structureId, int size) {
 }
 
 // size: real numbers, no encrypt but still EncB structure
-void initEnc(int **arrayAddr, int structureId, int size) {
-  int i = 0, j, blockNumber;
+void initEnc(int64_t **arrayAddr, int64_t structureId, int64_t size) {
+  int64_t i = 0, j, blockNumber;
   EncBlock *addr = (EncBlock*)arrayAddr[structureId];
   if (structureSize[structureId] == 4) {
-    blockNumber = (int)ceil(1.0*size/BLOCK_DATA_SIZE);
+    blockNumber = (int64_t)ceil(1.0*size/BLOCK_DATA_SIZE);
     for (i = 0; i < blockNumber; i++) {
-      int *addx = (int*)(&addr[i]);
+      int64_t *addx = (int64_t*)(&addr[i]);
       for (j = 0; j < BLOCK_DATA_SIZE; ++j) {
         addx[j] = size - (i * BLOCK_DATA_SIZE + j);
       }
     }
   } else if (structureSize[structureId] == 8) {
-    blockNumber = (int)ceil(1.0*size/BLOCK_DATA_SIZE/2); 
+    blockNumber = (int64_t)ceil(1.0*size/BLOCK_DATA_SIZE/2); 
     for (i = 0; i < blockNumber; ++i) {
       Bucket_x *addx = (Bucket_x*)(&addr[i]);
       for (j = 0; j < BLOCK_DATA_SIZE/2; ++j) {
@@ -75,23 +75,23 @@ void initEnc(int **arrayAddr, int structureId, int size) {
   }
 }
 
-void testIO(int IOnum, int inId) {
-  int totalB = ceil(IOnum / 2);
+void testIO(int64_t IOnum, int64_t inId) {
+  int64_t totalB = ceil(IOnum / 2);
   printf("Testing IO: %d\n", IOnum);
   aes_init();
-  int *buffer = (int*)malloc(PAGEBYTES);
-  int pageNum = PAGEBYTES / 4;
+  int64_t *buffer = (int64_t*)malloc(PAGEBYTES);
+  int64_t pageNum = PAGEBYTES / 4;
   freeAllocate(inId, inId, totalB*PAGEBYTES/4);
   // std::random_device dev;
   // std::mt19937 rng(dev());
-  // std::uniform_int_distribution<int> dist{0, totalB-1};
-  int index;
+  // std::uniform_int_distribution<int64_t> dist{0, totalB-1};
+  int64_t index;
   nonEnc = 0;
-  for (int i = 0; i < totalB; ++i) {
+  for (int64_t i = 0; i < totalB; ++i) {
     // index = dist(rng);
     opOneLinearScanBlock(i*pageNum, buffer, PAGEBYTES/8, inId, 0, 0);
   }
-  for (int i = 0; i < totalB; ++i) {
+  for (int64_t i = 0; i < totalB; ++i) {
     // index = dist(rng);
     opOneLinearScanBlock(i*pageNum, buffer, PAGEBYTES/8, inId, 1, 0);
   }
@@ -99,7 +99,7 @@ void testIO(int IOnum, int inId) {
 }
 
 // trusted function
-void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN) {
+void callSort(int64_t sortId, int64_t structureId, int64_t paddedSize, int64_t *resId, int64_t *resN) {
   // TODO: Utilize Memory alloction -- structureId
   if (sortId == 0) {
     is_tight = 1;
@@ -107,9 +107,9 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
       *resId = ObliviousTightSort(structureId, paddedSize, structureId + 1, structureId);
     }
   } else if (sortId == 1) {
-    if (paddedSize / M <= 128) {
+    if (paddedSize / M <= 16000) {
       is_tight = 0;
-      std::pair<int, int> ans = ObliviousLooseSort(structureId, paddedSize, structureId + 1, structureId);
+      std::pair<int64_t, int64_t> ans = ObliviousLooseSort(structureId, paddedSize, structureId + 1, structureId);
       *resId = ans.first;
       *resN = ans.second;
     }
@@ -122,7 +122,7 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
   } else {
     std::cout << "In testing: \n";
     aes_init();
-    // 0, 3, 4: int , 1, 2: bucket
+    // 0, 3, 4: int64_t , 1, 2: bucket
     freeAllocate(0, 0, ceil(1.0*N/BLOCK_DATA_SIZE)); 
     freeAllocate(3, 3, ceil(1.0*N/BLOCK_DATA_SIZE));
     // freeAllocate(1, 1, ceil(1.0*N/2));
@@ -131,8 +131,8 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
     // initEnc(arrayAddr, 1, N); 
     printf("Initial\n");
     printEnc(arrayAddr, 0, N);
-    int *read = (int*)malloc(N*sizeof(int));
-    // int *read = (int*)malloc(N*sizeof(Bucket_x));
+    int64_t *read = (int64_t*)malloc(N*sizeof(int64_t));
+    // int64_t *read = (int64_t*)malloc(N*sizeof(Bucket_x));
     nonEnc = 1;
     opOneLinearScanBlock(0, read, N, 0, 0, 0);
     std::cout << "After Read in nonEnc\n";
@@ -158,10 +158,10 @@ void callSort(int sortId, int structureId, int paddedSize, int *resId, int *resN
 }
 
 /* main function */
-int main(int argc, const char* argv[]) {
-  int ret = 1;
-  int *resId = (int*)malloc(sizeof(int));
-  int *resN = (int*)malloc(sizeof(int));
+int main(int64_t argc, const char* argv[]) {
+  int64_t ret = 1;
+  int64_t *resId = (int64_t*)malloc(sizeof(int64_t));
+  int64_t *resN = (int64_t*)malloc(sizeof(int64_t));
   // oe_result_t result;
   // oe_enclave_t* enclave = NULL;
   std::chrono::high_resolution_clock::time_point start, end;
@@ -171,23 +171,23 @@ int main(int argc, const char* argv[]) {
   // freopen("/home/data/bchenba/errors.txt", "w+", stdout); 
 
   // 0: OQSORT-Tight, 1: OQSORT-Loose, 2: bucketOSort, 3: bitonicSort, 4: merge_sort(x)
-  int sortId = 2;
-  int inputId = 0;
+  int64_t sortId = 1;
+  int64_t inputId = 0;
 
   // double beta = calParams();
   // double alpha = (KAPPA+1+log(1.0*N))*4*(1+beta)*(1+2*beta)/beta/beta/M;
-  // int p = ceil((1+2*beta)*N/M);
+  // int64_t p = ceil((1+2*beta)*N/M);
   // printf("Parameters: alpha: %f, beta: %f, p: %d\n", alpha, beta, p);
   // step1: init test numbers
-  int FAN_OUT;
-  int BUCKET_SIZE;
+  int64_t FAN_OUT;
+  int64_t BUCKET_SIZE;
   if (sortId == 3) {
     // inputId = 0;
-    int addi = 0;
+    int64_t addi = 0;
     if (N % BLOCK_DATA_SIZE != 0) {
       addi = ((N / BLOCK_DATA_SIZE) + 1) * BLOCK_DATA_SIZE - N;
     }
-    X = (int*)malloc((N + addi) * sizeof(int));
+    X = (int64_t*)malloc((N + addi) * sizeof(int64_t));
     paddedSize = N + addi;
     arrayAddr[inputId] = X;
     init(arrayAddr, inputId, paddedSize);
@@ -196,8 +196,8 @@ int main(int argc, const char* argv[]) {
     // arrayAddr[inputId] = X;
     bucketx1 = (Bucket_x*)malloc(N * sizeof(Bucket_x));
     bucketx2 = (Bucket_x*)malloc(N * sizeof(Bucket_x));
-    arrayAddr[inputId] = (int*)bucketx1;
-    arrayAddr[inputId+1] = (int*)bucketx2;
+    arrayAddr[inputId] = (int64_t*)bucketx1;
+    arrayAddr[inputId+1] = (int64_t*)bucketx2;
     paddedSize = N;
     init(arrayAddr, inputId, paddedSize);
   } else if (sortId == 2) {
@@ -210,22 +210,22 @@ int main(int argc, const char* argv[]) {
     std::cout << "Threash: " << thresh << std::endl;
     FAN_OUT = greatestPowerOfTwoLessThan(thresh)/2;
     assert(FAN_OUT >= 2 && "M/Z must greater than 2");
-    int bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
-    int bucketSize = bucketNum * BUCKET_SIZE;
+    int64_t bucketNum = smallestPowerOfKLargerThan(ceil(2.0 * N / BUCKET_SIZE), 2);
+    int64_t bucketSize = bucketNum * BUCKET_SIZE;
     std::cout << "TOTAL BUCKET SIZE: " << bucketSize << std::endl;
     std::cout << "BUCKET NUMBER: " << bucketNum << std::endl;
     std::cout << "BUCKET SIZE: " << BUCKET_SIZE << std::endl; 
     std::cout << "FAN_OUT: " << FAN_OUT << std::endl;  
-    freeAllocate(1, 1, ceil(1.0*bucketSize/2));
-    freeAllocate(2, 2, ceil(1.0*bucketSize/2));
+    freeAllocate(1, 1, ceil(1.0*bucketSize/(BLOCK_DATA_SIZE/2)));
+    freeAllocate(2, 2, ceil(1.0*bucketSize/(BLOCK_DATA_SIZE/2)));
     std::cout << "After bucket malloc\n";
-    freeAllocate(inputId, inputId, ceil(1.0*N/4));
+    freeAllocate(inputId, inputId, ceil(1.0*N/BLOCK_DATA_SIZE));
     paddedSize = N;
     // TODO: 
     initEnc(arrayAddr, inputId, paddedSize);
   } else if (sortId == 0 || sortId == 1) {
     inputId = 3;
-    freeAllocate(inputId, inputId, ceil(1.0*N/4));
+    freeAllocate(inputId, inputId, ceil(1.0*N/BLOCK_DATA_SIZE));
     paddedSize = N;
     initEnc(arrayAddr, inputId, paddedSize);
   }
@@ -273,12 +273,12 @@ int main(int argc, const char* argv[]) {
   duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "Finished. Duration Time: " << duration.count() << " seconds" << std::endl;
   // std::cout.precision(4);
-  int multi = (sortId == 2 || sortId == 4) ? 2 : 1;
+  int64_t multi = (sortId == 2 || sortId == 4) ? 2 : 1;
   printf("IOcost: %f, %f\n", 1.0*IOcost/N*(BLOCK_DATA_SIZE/multi), IOcost);
   printEnc(arrayAddr, *resId, *resN);
   // step5: exix part
   exit:
-    for (int i = 0; i < NUM_STRUCTURES; ++i) {
+    for (int64_t i = 0; i < NUM_STRUCTURES; ++i) {
       if (arrayAddr[i]) {
         // free(arrayAddr[i]);
       }
